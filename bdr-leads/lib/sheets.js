@@ -32,6 +32,25 @@ async function findEmailPattern(company) {
 
 async function appendRow(data) {
   const sheets = getClient()
+  
+  // Check if sheet is empty first
+  const existing = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!A1:A2`
+  })
+  const rows = existing.data.values || []
+  
+  // Write headers if sheet is empty
+  if (rows.length === 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A1:K1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [COLS] }
+    })
+  }
+
+  // Now append the data row
   const row = [
     data.company || '',
     data.warmth || '',
@@ -45,23 +64,13 @@ async function appendRow(data) {
     data.notes || '',
     new Date().toLocaleDateString('en-US')
   ]
+  
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${SHEET_NAME}!A:K`,
     valueInputOption: 'USER_ENTERED',
     requestBody: { values: [row] }
   })
-  
-  // Write headers if first row is empty
-  const rows = await getRows()
-  if (rows.length === 1) {
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: SHEET_ID,
-      range: `${SHEET_NAME}!A1:K1`,
-      valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [COLS] }
-    })
-  }
 }
 
 module.exports = { findEmailPattern, appendRow }
