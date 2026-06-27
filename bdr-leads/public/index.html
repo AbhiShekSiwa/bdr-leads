@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BDR Lead Researcher</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f9f8f5;
+    --border: #e2e0d8;
+    --border-strong: #c8c6bc;
+    --text: #1a1a18;
+    --text-2: #5a5a56;
+    --text-3: #8a8a84;
+    --accent: #2563eb;
+    --accent-bg: #eff6ff;
+    --accent-border: #bfdbfe;
+    --success: #15803d;
+    --success-bg: #f0fdf4;
+    --success-border: #bbf7d0;
+    --warn: #92400e;
+    --warn-bg: #fffbeb;
+    --warn-border: #fde68a;
+    --danger: #991b1b;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --radius: 8px;
+  }
+
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+  header span { font-size: 13px; color: var(--text-3); }
+
+  .main { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px; width: fit-content; }
+  .tab { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: none; color: var(--text-2); transition: all 0.15s; }
+  .tab.active { background: var(--text); color: white; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+
+  label { display: block; font-size: 13px; font-weight: 500; color: var(--text-2); margin-bottom: 5px; }
+  input, textarea, select { width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 8px 12px; font-size: 14px; font-family: inherit; background: white; color: var(--text); outline: none; transition: border 0.15s; }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  textarea { resize: vertical; min-height: 80px; }
+
+  .field { margin-bottom: 12px; }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid var(--border-strong); background: white; color: var(--text); transition: all 0.15s; font-family: inherit; }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--text); color: white; border-color: var(--text); }
+  .btn.primary:hover { opacity: 0.85; }
+  .btn.success { background: var(--success); color: white; border-color: var(--success); }
+  .btn.success:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  .status-bar { display: none; align-items: center; gap: 8px; font-size: 13px; color: var(--text-2); padding: 8px 0; }
+  .status-bar.visible { display: flex; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-bar { display: none; font-size: 13px; color: var(--danger); background: var(--danger-bg); border: 1px solid var(--danger-border); border-radius: var(--radius); padding: 8px 12px; margin-top: 8px; }
+  .error-bar.visible { display: block; }
+
+  .results-header { display: flex; align-items: center; justify-content: space-between; margin: 1.5rem 0 1rem; }
+  .results-header h2 { font-size: 15px; font-weight: 600; }
+  .results-header span { font-size: 13px; color: var(--text-3); }
+
+  .lead-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 1rem; overflow: hidden; }
+  .lead-card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+  .lead-name { font-size: 16px; font-weight: 600; }
+  .lead-meta { font-size: 13px; color: var(--text-2); margin-top: 2px; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .tag { font-size: 11px; font-weight: 500; padding: 3px 8px; border-radius: 20px; }
+  .tag.warm { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+  .tag.cold { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); }
+  .tag.neutral { background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent-border); }
+
+  .lead-body { padding: 1.25rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .lead-section { }
+  .lead-section-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+  .lead-section-body { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+  .angle-box { background: var(--accent-bg); border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; padding: 10px 12px; font-size: 13px; color: var(--text); line-height: 1.6; margin-top: 5px; }
+
+  .hunter-box { background: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--radius); padding: 10px 12px; font-size: 13px; margin-top: 5px; }
+  .hunter-box .pattern { font-family: monospace; font-size: 13px; color: var(--success); font-weight: 600; }
+
+  .sources { padding: 0.75rem 1.25rem; border-top: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; }
+  .source-link { font-size: 12px; color: var(--accent); text-decoration: none; }
+  .source-link:hover { text-decoration: underline; }
+
+  .full-width { grid-column: 1 / -1; }
+
+  .batch-textarea { font-family: monospace; font-size: 13px; }
+
+  .progress-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .progress-item:last-child { border-bottom: none; }
+  .progress-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-pending { background: var(--border-strong); }
+  .dot-running { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  .dot-done { background: var(--success); }
+  .dot-error { background: var(--danger); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .empty-state { text-align: center; padding: 3rem; color: var(--text-3); font-size: 14px; }
+
+  @media (max-width: 600px) {
+    .grid2, .grid3, .lead-body { grid-template-columns: 1fr; }
+    .main { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚀 BDR Lead Researcher</h1>
+  <span>Serper + Groq + Hunter.io</span>
+</header>
+
+<div class="main">
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('single')">Single lead</button>
+    <button class="tab" onclick="switchTab('batch')">Batch import</button>
+  </div>
+
+  <!-- SINGLE -->
+  <div class="panel active" id="panel-single">
+    <div class="card">
+      <div class="card-title">Lead details</div>
+      <div class="grid2">
+        <div class="field">
+          <label>Company name <span style="color:#dc2626">*</span></label>
+          <input type="text" id="s-company" placeholder="e.g. Agile Space Industries" />
+        </div>
+        <div class="field">
+          <label>Company domain (for Hunter.io)</label>
+          <input type="text" id="s-domain" placeholder="e.g. agilespace.com" />
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="field">
+          <label>POC name</label>
+          <input type="text" id="s-poc" placeholder="e.g. Jane Smith" />
+        </div>
+        <div class="field">
+          <label>POC title / role</label>
+          <input type="text" id="s-role" placeholder="e.g. University Relations" />
+        </div>
+        <div class="field">
+          <label>POC contact</label>
+          <input type="text" id="s-contact" placeholder="e.g. LinkedIn URL" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="s-notes" placeholder="Any existing notes — past correspondence, how you found them, etc."></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="s-btn" onclick="researchSingle()">Research this lead</button>
+        <button class="btn" onclick="clearSingle()">Clear</button>
+      </div>
+      <div class="status-bar" id="s-status"><div class="spinner"></div> Searching web, analyzing, fetching email pattern…</div>
+      <div class="error-bar" id="s-error"></div>
+    </div>
+
+    <div id="s-results"></div>
+  </div>
+
+  <!-- BATCH -->
+  <div class="panel" id="panel-batch">
+    <div class="card">
+      <div class="card-title">Batch import</div>
+      <div class="field">
+        <label>Paste company names — one per line. Optionally add domain, POC, role separated by commas.</label>
+        <textarea class="batch-textarea" id="b-input" rows="8" placeholder="Agile Space Industries
+Seco Seals, secoseals.com
+Redwire Space, redwirespace.com, Shane Layton, LinkedIn
+Exoterra, exoterra.com, Matt Glascock, SR Propulsion Engineer"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="b-btn" onclick="researchBatch()">Research all leads</button>
+        <button class="btn" onclick="document.getElementById('b-input').value=''">Clear</button>
+      </div>
+      <div class="status-bar" id="b-status"><div class="spinner"></div> <span id="b-status-text">Processing…</span></div>
+      <div class="error-bar" id="b-error"></div>
+      <div id="b-progress" style="margin-top:12px;"></div>
+    </div>
+    <div id="b-results"></div>
+  </div>
+
+  <!-- EXPORT always visible when there are results -->
+  <div id="export-bar" style="display:none; margin-bottom:1rem;">
+    <div class="btn-row">
+      <button class="btn success" onclick="exportCSV()">⬇ Download CSV</button>
+      <span style="font-size:13px; color:var(--text-3)" id="export-count"></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allResults = [];
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+
+async function callAPI(payload) {
+  const res = await fetch('/api/research', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'API error');
+  return data;
+}
+
+async function researchSingle() {
+  const company = document.getElementById('s-company').value.trim();
+  if (!company) { showError('s-error', 'Company name is required.'); return; }
+
+  setLoading('s', true);
+  clearError('s-error');
+
+  try {
+    const result = await callAPI({
+      company,
+      domain: document.getElementById('s-domain').value.trim(),
+      poc: document.getElementById('s-poc').value.trim(),
+      pocRole: document.getElementById('s-role').value.trim(),
+      notes: document.getElementById('s-notes').value.trim()
+    });
+
+    const enriched = { ...result, company, poc: document.getElementById('s-poc').value.trim(), pocRole: document.getElementById('s-role').value.trim() };
+    allResults = allResults.filter(r => r.company !== company);
+    allResults.unshift(enriched);
+
+    document.getElementById('s-results').innerHTML = renderCard(enriched);
+    updateExportBar();
+  } catch (err) {
+    showError('s-error', err.message);
+  }
+
+  setLoading('s', false);
+}
+
+async function researchBatch() {
+  const raw = document.getElementById('b-input').value.trim();
+  if (!raw) { showError('b-error', 'Paste at least one company name.'); return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  const leads = lines.map(line => {
+    const parts = line.split(',').map(p => p.trim());
+    return { company: parts[0], domain: parts[1] || '', poc: parts[2] || '', pocRole: parts[3] || '' };
+  });
+
+  document.getElementById('b-btn').disabled = true;
+  document.getElementById('b-status').classList.add('visible');
+  clearError('b-error');
+  document.getElementById('b-results').innerHTML = '';
+
+  const progress = {};
+  leads.forEach(l => progress[l.company] = 'pending');
+  renderProgress(progress);
+
+  const batchResults = [];
+
+  for (const lead of leads) {
+    progress[lead.company] = 'running';
+    renderProgress(progress);
+    document.getElementById('b-status-text').textContent = `Researching ${lead.company}… (${leads.indexOf(lead)+1}/${leads.length})`;
+
+    try {
+      const result = await callAPI(lead);
+      const enriched = { ...result, ...lead };
+      batchResults.push(enriched);
+      allResults = allResults.filter(r => r.company !== lead.company);
+      allResults.unshift(enriched);
+      progress[lead.company] = 'done';
+    } catch {
+      progress[lead.company] = 'error';
+    }
+
+    renderProgress(progress);
+    await sleep(500);
+  }
+
+  document.getElementById('b-results').innerHTML = batchResults.map(renderCard).join('');
+  document.getElementById('b-status').classList.remove('visible');
+  document.getElementById('b-btn').disabled = false;
+  updateExportBar();
+}
+
+function renderProgress(progress) {
+  const el = document.getElementById('b-progress');
+  el.innerHTML = Object.entries(progress).map(([company, state]) => `
+    <div class="progress-item">
+      <div class="progress-dot dot-${state}"></div>
+      <span>${company}</span>
+      <span style="color:var(--text-3); margin-left:auto; font-size:12px">${state}</span>
+    </div>
+  `).join('');
+}
+
+function renderCard(d) {
+  const tags = (d.tags || []).map((tag, i) => {
+    const type = (d.tagTypes || [])[i] || 'neutral';
+    return `<span class="tag ${type}">${tag}</span>`;
+  }).join('');
+
+  const hunter = d.hunter ? `
+    <div class="hunter-box">
+      ${d.hunter.pattern ? `<div>Pattern: <span class="pattern">${d.hunter.pattern}@${d.hunter.org || '?'}</span></div>` : ''}
+      ${d.hunter.email ? `<div style="margin-top:4px; color:var(--text-2)">Example: ${d.hunter.email}</div>` : ''}
+      ${!d.hunter.pattern && !d.hunter.email ? '<div style="color:var(--text-3)">No pattern found — check Hunter.io manually.</div>' : ''}
+    </div>` : '<div style="font-size:13px; color:var(--text-3)">Hunter.io key not configured.</div>';
+
+  const sources = (d.searchSources || []).map(s =>
+    `<a class="source-link" href="${s.link}" target="_blank" rel="noopener">${s.title}</a>`
+  ).join('');
+
+  const next = (d.next || '').split('\n').map(l => l.trim()).filter(Boolean)
+    .map(l => `<div style="margin-bottom:5px">${l}</div>`).join('');
+
+  return `
+  <div class="lead-card">
+    <div class="lead-card-header">
+      <div>
+        <div class="lead-name">${d.company || '—'}</div>
+        <div class="lead-meta">${d.poc ? d.poc + (d.pocRole ? ' · ' + d.pocRole : '') : 'No POC yet'}</div>
+        <div class="tag-row">${tags}</div>
+      </div>
+    </div>
+    <div class="lead-body">
+      <div class="lead-section">
+        <div class="lead-section-label">What they do</div>
+        <div class="lead-section-body">${d.what || '—'}</div>
+      </div>
+      <div class="lead-section">
+        <div class="lead-section-label">Size &amp; stage</div>
+        <div class="lead-section-body">${d.size || '—'}</div>
+      </div>
+      <div class="lead-section">
+        <div class="lead-section-label">Colorado presence</div>
+        <div class="lead-section-body">${d.colorado || '—'}</div>
+      </div>
+      <div class="lead-section">
+        <div class="lead-section-label">University / community programs</div>
+        <div class="lead-section-body">${d.university || '—'}</div>
+      </div>
+      <div class="lead-section full-width">
+        <div class="lead-section-label">POC brief</div>
+        <div class="lead-section-body">${d.poc_brief || d.poc_info || d.pocBrief || (typeof d.poc === 'string' && d.poc.length > 40 ? d.poc : '—')}</div>
+      </div>
+      <div class="lead-section full-width">
+        <div class="lead-section-label">Why they'd care about BDR</div>
+        <div class="lead-section-body">${d.why || '—'}</div>
+      </div>
+      <div class="lead-section full-width">
+        <div class="lead-section-label">Email angle</div>
+        <div class="angle-box">${d.angle || '—'}</div>
+      </div>
+      <div class="lead-section">
+        <div class="lead-section-label">Email pattern (Hunter.io)</div>
+        ${hunter}
+      </div>
+      <div class="lead-section">
+        <div class="lead-section-label">Next steps</div>
+        <div class="lead-section-body">${next || '—'}</div>
+      </div>
+    </div>
+    ${sources ? `<div class="sources">${sources}</div>` : ''}
+  </div>`;
+}
+
+function updateExportBar() {
+  const bar = document.getElementById('export-bar');
+  const count = document.getElementById('export-count');
+  if (allResults.length > 0) {
+    bar.style.display = 'block';
+    count.textContent = `${allResults.length} lead${allResults.length !== 1 ? 's' : ''} ready to export`;
+  }
+}
+
+function exportCSV() {
+  const headers = ['Company', 'POC Name', 'POC Role', 'Email Pattern', 'Example Email', 'CO Presence', 'University Programs', 'Size', 'What They Do', 'Why BDR Fit', 'Email Angle', 'Tags', 'Next Steps'];
+
+  const rows = allResults.map(d => [
+    d.company || '',
+    d.poc || '',
+    d.pocRole || '',
+    d.hunter?.pattern || '',
+    d.hunter?.email || '',
+    d.colorado || '',
+    d.university || '',
+    d.size || '',
+    d.what || '',
+    d.why || '',
+    d.angle || '',
+    (d.tags || []).join('; '),
+    (d.next || '').replace(/\n/g, ' | ')
+  ].map(cell => `"${String(cell).replace(/"/g, '""')}"`));
+
+  const csv = [headers.map(h => `"${h}"`).join(','), ...rows.map(r => r.join(','))].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bdr-leads-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function setLoading(prefix, on) {
+  document.getElementById(prefix + '-btn').disabled = on;
+  document.getElementById(prefix + '-status').classList.toggle('visible', on);
+}
+
+function showError(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.classList.add('visible'); }
+function clearError(id) { document.getElementById(id).classList.remove('visible'); }
+function clearSingle() { ['s-company','s-domain','s-poc','s-role','s-contact','s-notes'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; }); document.getElementById('s-results').innerHTML=''; clearError('s-error'); }
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
