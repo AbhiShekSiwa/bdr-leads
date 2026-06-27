@@ -1,5 +1,3 @@
-import styles from './ResultCard.module.css'
-
 const warmthConfig = {
   hot:  { label: 'Hot lead',  color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
   warm: { label: 'Warm lead', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
