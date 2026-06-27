@@ -50,7 +50,7 @@ export default function ResultCard({ data, company }) {
         <Section label="University programs" body={brief.university} />
       </div>
 
-      <Section label="POC brief" body={brief.poc} style={{ marginBottom: 12 }} />
+      <Section label="Point of contact" body={brief.poc} style={{ marginBottom: 12 }} />
 
       {/* Email angle */}
       <div style={{ marginBottom: 12 }}>
@@ -101,11 +101,26 @@ export default function ResultCard({ data, company }) {
       {sources.length > 0 && (
         <div style={{ marginTop: 12, borderTop: '0.5px solid #e4e4e0', paddingTop: 12 }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#9b9b97', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Sources searched</div>
-          <ul style={{ paddingLeft: 18, fontSize: 12, color: '#2563eb', lineHeight: 2 }}>
-            {sources.map((s, i) => (
-              <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{s.title}</a></li>
-            ))}
-          </ul>
+          {sources.filter(s => s.isLinkedIn).length > 0 && (
+            <div style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, marginBottom: 4 }}>People found on LinkedIn</div>
+              <ul style={{ paddingLeft: 18, fontSize: 12, lineHeight: 2 }}>
+                {sources.filter(s => s.isLinkedIn).map((s, i) => (
+                  <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{s.title}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {sources.filter(s => !s.isLinkedIn).length > 0 && (
+            <div>
+              <div style={{ fontSize: 11, color: '#9b9b97', fontWeight: 600, marginBottom: 4 }}>Web sources</div>
+              <ul style={{ paddingLeft: 18, fontSize: 12, lineHeight: 2 }}>
+                {sources.filter(s => !s.isLinkedIn).map((s, i) => (
+                  <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{s.title}</a></li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>

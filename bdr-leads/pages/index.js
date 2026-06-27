@@ -128,14 +128,14 @@ export default function Home() {
                   onKeyDown={e => e.key === 'Enter' && runSingle()} />
               </div>
               <div style={s.field}>
-                <label style={s.label}>POC name (optional)</label>
+                <label style={s.label}>Point of contact (optional)</label>
                 <input style={s.input} placeholder="e.g. Jane Smith"
                   value={form.poc} onChange={e => setForm({ ...form, poc: e.target.value })} />
               </div>
             </div>
             <div style={s.grid2}>
               <div style={s.field}>
-                <label style={s.label}>POC title / role</label>
+                <label style={s.label}>Point of contact title / role</label>
                 <input style={s.input} placeholder="e.g. University Relations Manager"
                   value={form.pocRole} onChange={e => setForm({ ...form, pocRole: e.target.value })} />
               </div>

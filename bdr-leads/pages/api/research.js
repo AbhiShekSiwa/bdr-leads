@@ -28,7 +28,8 @@ async function searchCompany(company, poc) {
   const queries = [
     `${company} aerospace sponsorship university students`,
     `${company} company overview Colorado aerospace`,
-    poc ? `${poc} ${company} LinkedIn` : `${company} community engagement grants`
+    poc ? `${poc} ${company} LinkedIn` : `${company} community engagement grants`,
+    `${company} engineer OR "business development" OR "university relations" site:linkedin.com/in`
   ]
 
   const results = await Promise.all(queries.map(async (q) => {
@@ -47,7 +48,7 @@ async function searchCompany(company, poc) {
   const flat = results.flat()
   return {
     snippets: flat.map(r => `${r.title}: ${r.snippet}`).join('\n\n'),
-    sources: flat.filter(r => r.url).map(r => ({ title: r.title, url: r.url }))
+    sources: flat.filter(r => r.url).map(r => ({ title: r.title, url: r.url, isLinkedIn: r.url.includes('linkedin.com/in') }))
   }
 }
 
