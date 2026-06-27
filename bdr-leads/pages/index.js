@@ -32,7 +32,7 @@ export default function Home() {
   const [tab, setTab] = useState('single')
 
   // Single mode state
-  const [form, setForm] = useState({ company: '', poc: '', pocRole: '', notes: '', skipHunter: false })
+  const [form, setForm] = useState({ company: '', poc: '', pocRole: '', notes: '', skipHunter: true })
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
@@ -149,7 +149,7 @@ export default function Home() {
               <label style={{ fontSize: 13, color: '#6b6b67', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.skipHunter}
                   onChange={e => setForm({ ...form, skipHunter: e.target.checked })} />
-                Skip Hunter.io lookup (save your 25/month credits)
+                Include Hunter.io email pattern lookup (uses 1 of 50 monthly credits)
               </label>
             </div>
             <div style={s.btnRow}>
