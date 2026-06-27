@@ -147,8 +147,8 @@ export default function Home() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
               <label style={{ fontSize: 13, color: '#6b6b67', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.skipHunter}
-                  onChange={e => setForm({ ...form, skipHunter: e.target.checked })} />
+                <input type="checkbox" checked={!form.skipHunter}
+                  onChange={e => setForm({ ...form, skipHunter: !e.target.checked })} />
                 Include Hunter.io email pattern lookup (uses 1 of 50 monthly credits)
               </label>
             </div>
