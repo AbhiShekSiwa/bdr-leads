@@ -58,7 +58,7 @@ async function appendRow(data) {
     data.position || '',
     data.emailPattern || '',
     data.pocEmail || '',
-    data.linkedIn || '',
+    data.linkedIn ? `=HYPERLINK("${data.linkedIn.split(',')[0].trim()}","View Profile")` : '',
     (data.tags || []).join(', '),
     'Not contacted',
     data.notes || '',

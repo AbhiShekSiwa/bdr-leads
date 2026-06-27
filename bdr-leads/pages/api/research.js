@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     // 4. Save to sheet
     try {
       await appendRow({
-        company,
+        company: company.trim().replace(/\b\w/g, c => c.toUpperCase()),
         warmth: brief.warmth,
         pocName: poc || '',
         position: pocRole || '',
