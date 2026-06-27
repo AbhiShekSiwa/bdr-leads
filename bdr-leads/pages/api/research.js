@@ -1,3 +1,5 @@
+const { findEmailPattern, appendRow } = require('../../lib/sheets')
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -11,10 +13,37 @@ export default async function handler(req, res) {
     // 2. GROQ — AI brief from search results
     const brief = await generateBrief(company, poc, pocRole, notes, searchResults)
 
-    // 3. HUNTER — email pattern (1 lookup only, unless skipped)
+    // 3. Check sheet for existing email pattern first
     let emailData = null
-    if (!skipHunter) {
+    let patternFromSheet = null
+    
+    try {
+      patternFromSheet = await findEmailPattern(company)
+    } catch (e) {
+      console.error('Sheet read failed:', e.message)
+    }
+
+    if (patternFromSheet) {
+      emailData = { pattern: patternFromSheet, fromSheet: true }
+    } else if (!skipHunter) {
       emailData = await getEmailPattern(company)
+    }
+
+    // 4. Save to sheet
+    try {
+      await appendRow({
+        company,
+        warmth: brief.warmth,
+        pocName: poc || '',
+        position: pocRole || '',
+        emailPattern: emailData?.pattern || '',
+        pocEmail: '',
+        linkedIn: (searchResults.sources || []).filter(s => s.isLinkedIn).map(s => s.url).join(', '),
+        tags: brief.tags || [],
+        notes: notes || ''
+      })
+    } catch (e) {
+      console.error('Sheet write failed:', e.message)
     }
 
     return res.status(200).json({ brief, emailData, searchSnippets: searchResults.snippets, sources: searchResults.sources })

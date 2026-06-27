@@ -197,7 +197,7 @@ export default function Home() {
               <h2 style={{ fontSize: 16, fontWeight: 500, color: '#1a1a18' }}>
                 {allResults.length} result{allResults.length !== 1 ? 's' : ''}
               </h2>
-              {allResults.length > 1 && (
+              {allResults.length > 0 && (
                 <button style={s.btnSecondary} onClick={() => exportToCSV(allResults)}>
                   Download CSV
                 </button>
