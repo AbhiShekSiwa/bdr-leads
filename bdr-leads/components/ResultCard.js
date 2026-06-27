@@ -7,6 +7,7 @@ const warmthConfig = {
 export default function ResultCard({ data, company }) {
   const brief = data.brief || {}
   const email = data.emailData
+  const sources = data.sources || []
   const warmth = warmthConfig[brief.warmth] || warmthConfig.cold
 
   function copyAngle() {
@@ -93,6 +94,17 @@ export default function ResultCard({ data, company }) {
           <div style={{ fontSize: 11, fontWeight: 600, color: '#9b9b97', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Next steps</div>
           <ul style={{ paddingLeft: 18, fontSize: 13, color: '#6b6b67', lineHeight: 1.8 }}>
             {brief.next.map((step, i) => <li key={i}>{step}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {sources.length > 0 && (
+        <div style={{ marginTop: 12, borderTop: '0.5px solid #e4e4e0', paddingTop: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#9b9b97', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Sources searched</div>
+          <ul style={{ paddingLeft: 18, fontSize: 12, color: '#2563eb', lineHeight: 2 }}>
+            {sources.map((s, i) => (
+              <li key={i}><a href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>{s.title}</a></li>
+            ))}
           </ul>
         </div>
       )}

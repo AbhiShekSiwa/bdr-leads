@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       emailData = await getEmailPattern(company)
     }
 
-    return res.status(200).json({ brief, emailData, searchSnippets: searchResults.snippets })
+    return res.status(200).json({ brief, emailData, searchSnippets: searchResults.snippets, sources: searchResults.sources })
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: err.message || 'Research failed' })
@@ -41,10 +41,14 @@ async function searchCompany(company, poc) {
       body: JSON.stringify({ q, num: 4 })
     })
     const data = await r.json()
-    return (data.organic || []).map(r => `${r.title}: ${r.snippet}`).join('\n')
+    return (data.organic || []).map(r => ({ title: r.title, snippet: r.snippet, url: r.link }))
   }))
 
-  return { snippets: results.join('\n\n') }
+  const flat = results.flat()
+  return {
+    snippets: flat.map(r => `${r.title}: ${r.snippet}`).join('\n\n'),
+    sources: flat.filter(r => r.url).map(r => ({ title: r.title, url: r.url }))
+  }
 }
 
 async function generateBrief(company, poc, pocRole, notes, searchResults) {
