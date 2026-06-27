@@ -88,8 +88,12 @@ Return ONLY a valid JSON object, no markdown, no preamble:
 
   const data = await r.json()
   const text = data.choices?.[0]?.message?.content || ''
-  const match = text.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error('Could not parse AI response')
+  const clean = text.replace(/```json|```/g, '').trim()
+  const match = clean.match(/\{[\s\S]*\}/)
+  if (!match) {
+    console.error('Raw Groq response:', text)
+    throw new Error('Could not parse AI response')
+  }
   return JSON.parse(match[0])
 }
 
