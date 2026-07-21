@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { colors, btnPrimary, btnSecondary } from '../shared'
+import { colors, btnPrimary, btnSecondary, LinkButton } from '../shared'
 
 export default function PeopleTab({
   company,
@@ -125,14 +125,11 @@ export default function PeopleTab({
                 </div>
               ) : null}
               {(p.url || p.linkedInUrl) && (
-                <a
-                  href={p.url || p.linkedInUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ fontSize: 12, color: colors.accent, display: 'inline-block', marginTop: 6 }}
-                >
-                  LinkedIn profile
-                </a>
+                <div style={{ marginTop: 8 }}>
+                  <LinkButton href={p.url || p.linkedInUrl}>
+                    Open LinkedIn ↗
+                  </LinkButton>
+                </div>
               )}
               {p.snippet && (
                 <div style={{ fontSize: 12, color: colors.hint, marginTop: 8, lineHeight: 1.5 }}>
@@ -141,15 +138,24 @@ export default function PeopleTab({
               )}
 
               {email && (
-                <div style={{
-                  marginTop: 8,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  color: source === 'hunter-verified' ? '#059669' : '#d97706'
-                }}>
-                  {email}
-                  {confidence != null ? ` · ${confidence}% confident` : ''}
-                  {source === 'pattern-constructed' ? ' · pattern' : ''}
+                <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <LinkButton
+                    href={`mailto:${email}`}
+                    style={{
+                      border: `0.5px solid ${source === 'hunter-verified' ? '#bbf7d0' : '#fde68a'}`,
+                      background: source === 'hunter-verified' ? '#f0fdf4' : '#fffbeb',
+                      color: source === 'hunter-verified' ? '#059669' : '#d97706'
+                    }}
+                  >
+                    {email}
+                  </LinkButton>
+                  <span style={{
+                    fontSize: 11,
+                    color: source === 'hunter-verified' ? '#059669' : '#d97706'
+                  }}>
+                    {confidence != null ? `${confidence}%` : ''}
+                    {source === 'pattern-constructed' ? ' · pattern' : source === 'hunter-verified' ? ' · verified' : ''}
+                  </span>
                 </div>
               )}
               {hr?.error && (

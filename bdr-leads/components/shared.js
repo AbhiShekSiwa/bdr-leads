@@ -146,3 +146,36 @@ export const btnAccent = {
   cursor: 'pointer',
   fontFamily: 'inherit'
 }
+
+/** Compact pill button for external links (LinkedIn, mailto, etc.) */
+export const linkButtonStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '5px 12px',
+  borderRadius: 99,
+  fontSize: 12,
+  fontWeight: 500,
+  fontFamily: 'inherit',
+  textDecoration: 'none',
+  cursor: 'pointer',
+  border: `0.5px solid ${colors.accentBorder}`,
+  background: colors.accentBg,
+  color: colors.accent,
+  lineHeight: 1.3
+}
+
+export function LinkButton({ href, children, style }) {
+  if (!href) return null
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      style={{ ...linkButtonStyle, ...style }}
+    >
+      {children}
+    </a>
+  )
+}
+

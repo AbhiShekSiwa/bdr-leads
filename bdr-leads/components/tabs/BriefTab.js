@@ -1,6 +1,6 @@
 import {
   colors, warmthStyle, statusStyle, toTitleCase, parseLinkedIn,
-  outreachScore, Pill, labelStyle, btnPrimary
+  outreachScore, Pill, labelStyle, btnPrimary, LinkButton
 } from '../shared'
 
 export default function BriefTab({
@@ -94,11 +94,7 @@ export default function BriefTab({
         <Section title="Email pattern">{company.emailPattern || '—'}</Section>
         <Section title="LinkedIn">
           {linkedIn
-            ? (
-              <a href={linkedIn} target="_blank" rel="noreferrer" style={{ color: colors.accent }}>
-                LinkedIn profile
-              </a>
-            )
+            ? <LinkButton href={linkedIn}>Open LinkedIn ↗</LinkButton>
             : '—'}
         </Section>
         <Section title="Date added">{company.dateAdded || '—'}</Section>
