@@ -11,7 +11,7 @@ export default async function handler(req, res) {
     signals = [],
     contactName = '',
     contactTitle = '',
-    askType = 'financial_sponsorship'
+    askType = ''
   } = req.body || {}
 
   if (!company || typeof company !== 'string' || !company.trim()) {
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       signals: Array.isArray(signals) ? signals : [],
       contactName: typeof contactName === 'string' ? contactName : '',
       contactTitle: typeof contactTitle === 'string' ? contactTitle : '',
-      askType
+      askType: typeof askType === 'string' ? askType : ''
     })
     return res.status(200).json(sequence)
   } catch (err) {
@@ -41,12 +41,10 @@ export default async function handler(req, res) {
 async function generateSequence({ company, brief, signals, contactName, contactTitle, askType }) {
   // Subject length / word count often drift — qualityCheck.js flags those client-side.
 
-  const askDescriptions = {
-    financial_sponsorship: 'financial sponsorship (cash contribution toward team expenses, materials, or competition fees)',
-    hardware_donation: 'hardware or component donation (valves, sensors, fittings, raw materials, machining support)',
-    mentorship: 'technical mentorship (engineers from their team advising BDR on specific engineering challenges)',
-    internship_pipeline: 'internship pipeline (a relationship where BDR engineers can apply for roles at their company)'
-  }
+  // Free-text ask from the UI — empty/whitespace falls back rather than failing
+  const askText = (typeof askType === 'string' && askType.trim())
+    ? askType.trim()
+    : 'general sponsorship support for our rocket team'
 
   const greeting = contactName ? `Hi ${contactName},` : 'Hi there,'
 
@@ -70,8 +68,15 @@ They are building a 1,400 lbf throttleable ethanol/LOX engine toward a long-dura
 hotfire by May 2027. They successfully hotfired their ablative engine in April 2026.
 This is a serious engineering team, not a hobby club.
 
-They are reaching out to ${company} to ask for: 
-${askDescriptions[askType] || askType}
+They are reaching out to ${company} with this specific ask:
+"${askText}"
+
+Context: This is Big Dumb Rockets (BDR), a university rocket 
+team at CU Boulder. Every ask should be framed around how 
+supporting BDR benefits the company — access to talented 
+engineering students, visibility in the Colorado aerospace 
+community, association with a technically serious student 
+program building a 1,400 lbf ethanol/LOX engine.
 
 Contact name: ${contactName || 'not provided'}
 Contact title: ${contactTitle || 'not provided'}

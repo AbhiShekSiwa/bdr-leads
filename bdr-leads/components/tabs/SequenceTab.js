@@ -4,12 +4,40 @@ import {
   colors, labelStyle, inputStyle, btnPrimary, btnSecondary, btnAccent
 } from '../shared'
 
-const ASK_TYPES = [
-  { value: 'financial_sponsorship', label: 'Financial sponsorship' },
-  { value: 'hardware_donation', label: 'Hardware donation' },
-  { value: 'mentorship', label: 'Mentorship' },
-  { value: 'internship_pipeline', label: 'Internship pipeline' }
+export const FINANCIAL_ASK =
+  'Financial sponsorship to fund our ethanol/LOX engine hotfire campaign — targeting a long-duration test by May 2027'
+
+const ASK_PRESETS = [
+  {
+    chip: '💰 Financial sponsorship',
+    text: FINANCIAL_ASK
+  },
+  {
+    chip: '🔧 Hardware / components',
+    text: 'Hardware or component donation (valves, pressure transducers, fittings, raw materials, or machining support for our test stand)'
+  },
+  {
+    chip: '🧠 Technical mentorship',
+    text: 'Technical mentorship — engineers from your team advising BDR on specific propulsion or systems engineering challenges'
+  },
+  {
+    chip: '🎓 Recruiting pipeline',
+    text: 'Recruiting pipeline — a relationship where BDR engineers can apply for internships or full-time roles at your company'
+  }
 ]
+
+const chipBase = {
+  padding: '5px 10px',
+  borderRadius: 99,
+  fontSize: 12,
+  cursor: 'pointer',
+  border: '0.5px solid #e4e4e0',
+  background: '#fff',
+  marginRight: 6,
+  marginBottom: 8,
+  fontFamily: 'inherit',
+  color: colors.text
+}
 
 export default function SequenceTab({
   contactName,
@@ -52,6 +80,8 @@ export default function SequenceTab({
   }
 
   const quality = emails.length === 3 ? checkSequence(emails) : null
+  // Exact match only — any edit away from a preset deactivates all chips (intentional)
+  const activePreset = ASK_PRESETS.find((p) => p.text === askType)
 
   return (
     <div>
@@ -77,16 +107,36 @@ export default function SequenceTab({
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <label style={labelStyle}>Ask type</label>
-        <select
-          style={{ ...inputStyle, cursor: 'pointer' }}
+        <label style={labelStyle}>What we&apos;re asking for</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', marginBottom: 4 }}>
+          {ASK_PRESETS.map((p) => {
+            const active = activePreset?.text === p.text
+            return (
+              <button
+                key={p.chip}
+                type="button"
+                onClick={() => onAskTypeChange(p.text)}
+                style={{
+                  ...chipBase,
+                  ...(active ? {
+                    background: '#eff6ff',
+                    border: '0.5px solid #2563eb',
+                    color: '#2563eb'
+                  } : {})
+                }}
+              >
+                {p.chip}
+              </button>
+            )
+          })}
+        </div>
+        <textarea
+          style={{ ...inputStyle, minHeight: 72, resize: 'vertical', lineHeight: 1.5 }}
+          rows={3}
           value={askType}
           onChange={(e) => onAskTypeChange(e.target.value)}
-        >
-          {ASK_TYPES.map((a) => (
-            <option key={a.value} value={a.value}>{a.label}</option>
-          ))}
-        </select>
+          placeholder="Describe what BDR is looking for from this company — be specific. The more detail here, the better the emails."
+        />
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>

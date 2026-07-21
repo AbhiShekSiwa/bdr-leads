@@ -7,7 +7,8 @@ export default function BriefTab({
   company,
   researchResult,
   loadingResearch,
-  onResearch
+  onResearch,
+  onStatusUpdate
 }) {
   if (!company) {
     return <div style={{ fontSize: 14, color: colors.muted }}>Select a company to view its brief.</div>
@@ -19,6 +20,16 @@ export default function BriefTab({
   const sStyle = statusStyle[company.status] || statusStyle['Not contacted']
   const linkedIn = parseLinkedIn(company.linkedIn)
   const brief = researchResult?.brief
+  const currentStatus = company.status || 'Not contacted'
+
+  const STATUSES = [
+    'Not contacted',
+    'Researching',
+    'Draft ready',
+    'Sent',
+    'Replied',
+    'Pass'
+  ]
 
   return (
     <div>
@@ -27,11 +38,41 @@ export default function BriefTab({
           {toTitleCase(company.company)}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-          <Pill label={company.status || 'Not contacted'} palette={sStyle} />
+          <Pill label={currentStatus} palette={sStyle} />
           {company.warmth && <Pill label={company.warmth} palette={wStyle} />}
           <span style={{ fontSize: 13, color: colors.muted, marginLeft: 4 }}>
             Score {score.toFixed(1)} / 10
           </span>
+        </div>
+      </div>
+
+      <div style={{ marginBottom: 16 }}>
+        <div style={labelStyle}>Pipeline status</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+          {STATUSES.map((status) => {
+            const active = currentStatus === status
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => onStatusUpdate && onStatusUpdate(company.company, status)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  marginRight: 6,
+                  marginBottom: 6,
+                  border: '0.5px solid #e4e4e0',
+                  background: active ? '#1a1a18' : '#fff',
+                  color: active ? '#fff' : '#6b6b67',
+                  fontFamily: 'inherit'
+                }}
+              >
+                {status}
+              </button>
+            )
+          })}
         </div>
       </div>
 

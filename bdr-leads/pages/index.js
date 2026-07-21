@@ -5,6 +5,7 @@ import CompanyDetail from '../components/CompanyDetail'
 import ResultCard from '../components/ResultCard'
 import { exportToCSV } from '../lib/exportCSV'
 import { colors, toTitleCase, labelStyle, inputStyle, btnPrimary, btnSecondary } from '../components/shared'
+import { FINANCIAL_ASK } from '../components/tabs/SequenceTab'
 
 export default function Home() {
   const [companies, setCompanies] = useState([])
@@ -24,7 +25,7 @@ export default function Home() {
   const [editedEmails, setEditedEmails] = useState([])
   const [contactName, setContactName] = useState('')
   const [contactTitle, setContactTitle] = useState('')
-  const [askType, setAskType] = useState('financial_sponsorship')
+  const [askType, setAskType] = useState(FINANCIAL_ASK)
   const [showNewCompany, setShowNewCompany] = useState(false)
   const [showBatch, setShowBatch] = useState(false)
   const [isNarrow, setIsNarrow] = useState(false)
@@ -85,7 +86,7 @@ export default function Home() {
     setResearchResult(null)
     setContactName('')
     setContactTitle('')
-    setAskType('financial_sponsorship')
+    setAskType(FINANCIAL_ASK)
   }
 
   function handleSelectCompany(company) {
@@ -116,6 +117,13 @@ export default function Home() {
   }
 
   async function updateCompanyStatus(companyName, status) {
+    // Optimistic update so Brief status buttons / pills highlight immediately
+    setCompanies((prev) =>
+      prev.map((c) => (c.company === companyName ? { ...c, status } : c))
+    )
+    setSelectedCompany((prev) =>
+      prev && prev.company === companyName ? { ...prev, status } : prev
+    )
     try {
       const r = await fetch('/api/status', {
         method: 'POST',
@@ -124,12 +132,6 @@ export default function Home() {
       })
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || 'Status update failed')
-      setCompanies((prev) =>
-        prev.map((c) => (c.company === companyName ? { ...c, status } : c))
-      )
-      setSelectedCompany((prev) =>
-        prev && prev.company === companyName ? { ...prev, status } : prev
-      )
     } catch (e) {
       console.error(e)
       setError(e.message)
@@ -520,6 +522,7 @@ export default function Home() {
             researchResult={researchResult}
             loadingResearch={loadingResearch}
             onResearch={handleResearch}
+            onStatusUpdate={updateCompanyStatus}
             people={people}
             loadingPeople={loadingPeople}
             onFindPeople={handleFindPeople}

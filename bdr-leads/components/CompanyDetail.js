@@ -37,7 +37,8 @@ export default function CompanyDetail({
   onGenerateSequence,
   sequence,
   editedEmails,
-  onEmailsChange
+  onEmailsChange,
+  onStatusUpdate
 }) {
   if (!company) {
     return (
@@ -95,6 +96,7 @@ export default function CompanyDetail({
             researchResult={researchResult}
             loadingResearch={loadingResearch}
             onResearch={onResearch}
+            onStatusUpdate={onStatusUpdate}
           />
         )}
         {activeTab === 'people' && (
