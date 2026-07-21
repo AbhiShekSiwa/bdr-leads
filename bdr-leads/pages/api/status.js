@@ -1,4 +1,4 @@
-const { updateStatus } = require('../../lib/sheets')
+const { updateCompanyStatus } = require('../../lib/sheets')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -12,11 +12,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const updated = await updateStatus(company.trim(), status.trim())
-    if (updated === null) {
-      return res.status(404).json({ error: 'Company not found' })
-    }
-    return res.status(200).json({ success: true, status: updated })
+    await updateCompanyStatus(company.trim(), status.trim())
+    return res.status(200).json({ success: true, status: status.trim() })
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: err.message || 'Failed to update status' })

@@ -1,3 +1,5 @@
+const { saveContacts, incrementCounter } = require('../../lib/sheets')
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -8,6 +10,13 @@ export default async function handler(req, res) {
 
   try {
     const people = await findPeople(company.trim())
+    incrementCounter('serper_used').catch((e) => console.error(e))
+    // Persist to Contacts tab (await so Vercel doesn't drop the write)
+    try {
+      await saveContacts(company.trim(), people)
+    } catch (e) {
+      console.error('saveContacts failed:', e.message)
+    }
     return res.status(200).json({ people })
   } catch (err) {
     console.error(err)

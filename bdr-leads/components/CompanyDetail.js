@@ -39,7 +39,10 @@ export default function CompanyDetail({
   editedEmails,
   onEmailsChange,
   onStatusUpdate,
-  onRestore
+  onRestore,
+  contacts = [],
+  onContactsUpdated,
+  companyName
 }) {
   if (!company) {
     return (
@@ -102,14 +105,18 @@ export default function CompanyDetail({
         )}
         {activeTab === 'people' && (
           <PeopleTab
+            company={company.company}
+            contacts={contacts}
             people={people}
             loadingPeople={loadingPeople}
             onFindPeople={onFindPeople}
             onContactSelect={onContactSelect}
+            onContactsUpdated={onContactsUpdated}
           />
         )}
         {activeTab === 'sequence' && (
           <SequenceTab
+            company={company.company}
             contactName={contactName}
             contactTitle={contactTitle}
             askType={askType}

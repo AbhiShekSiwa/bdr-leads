@@ -1,4 +1,18 @@
+const { saveSignals, getSignals, incrementCounter } = require('../../lib/sheets')
+
 export default async function handler(req, res) {
+  if (req.method === 'GET') {
+    const { company } = req.query || {}
+    if (!company) return res.status(400).json({ error: 'company required' })
+    try {
+      const signals = await getSignals(String(company).trim())
+      return res.status(200).json({ signals })
+    } catch (err) {
+      console.error(err)
+      return res.status(500).json({ error: err.message || 'Failed to load signals' })
+    }
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { company } = req.body || {}
@@ -8,6 +22,12 @@ export default async function handler(req, res) {
 
   try {
     const signals = await findSignals(company.trim())
+    incrementCounter('serper_used').catch((e) => console.error(e))
+    try {
+      await saveSignals(company.trim(), signals)
+    } catch (e) {
+      console.error('saveSignals failed:', e.message)
+    }
     return res.status(200).json({ signals })
   } catch (err) {
     console.error(err)

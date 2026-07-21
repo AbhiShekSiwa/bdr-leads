@@ -30,6 +30,8 @@ export default function Home() {
   const [showBatch, setShowBatch] = useState(false)
   const [isNarrow, setIsNarrow] = useState(false)
   const [error, setError] = useState('')
+  const [contacts, setContacts] = useState([])
+  const [credits, setCredits] = useState(null)
 
   // New company form
   const [newCompany, setNewCompany] = useState('')
@@ -47,7 +49,47 @@ export default function Home() {
       setIsNarrow(true)
     }
     loadCompanies(true)
+    loadCredits()
   }, [])
+
+  async function loadCredits() {
+    try {
+      const r = await fetch('/api/credits')
+      const data = await r.json()
+      if (r.ok) setCredits(data.credits || null)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  async function loadContactsFor(companyName) {
+    if (!companyName) {
+      setContacts([])
+      return
+    }
+    try {
+      const r = await fetch(`/api/contacts?company=${encodeURIComponent(companyName)}`)
+      const data = await r.json()
+      if (r.ok) setContacts(data.contacts || [])
+      else setContacts([])
+    } catch (e) {
+      console.error(e)
+      setContacts([])
+    }
+  }
+
+  async function loadCachedSignals(companyName) {
+    if (!companyName) return
+    try {
+      const r = await fetch(`/api/signals?company=${encodeURIComponent(companyName)}`)
+      const data = await r.json()
+      if (r.ok && Array.isArray(data.signals) && data.signals.length > 0) {
+        setSignals(data.signals)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -71,6 +113,8 @@ export default function Home() {
         setSelectedCompany(list[0])
         setShowNewCompany(false)
         setShowBatch(false)
+        loadContactsFor(list[0].company)
+        loadCachedSignals(list[0].company)
       }
     } catch (e) {
       setError(e.message)
@@ -87,6 +131,7 @@ export default function Home() {
     setContactName('')
     setContactTitle('')
     setAskType(FINANCIAL_ASK)
+    setContacts([])
   }
 
   function handleSelectCompany(company) {
@@ -102,6 +147,8 @@ export default function Home() {
     setShowNewCompany(false)
     setShowBatch(false)
     resetWorkingState()
+    loadContactsFor(company.company)
+    loadCachedSignals(company.company)
   }
 
   function handleNewCompany() {
@@ -224,6 +271,8 @@ export default function Home() {
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || 'People search failed')
       setPeople(data.people || [])
+      await loadContactsFor(selectedCompany.company)
+      await loadCredits()
     } catch (e) {
       setError(e.message)
     }
@@ -243,6 +292,7 @@ export default function Home() {
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || 'Signal scan failed')
       setSignals(data.signals || [])
+      await loadCredits()
     } catch (e) {
       setError(e.message)
     }
@@ -278,6 +328,7 @@ export default function Home() {
       setSequence(data)
       setEditedEmails(data.emails || [])
       await updateCompanyStatus(selectedCompany.company, 'Draft ready')
+      await loadCredits()
     } catch (e) {
       setError(e.message)
     }
@@ -377,6 +428,7 @@ export default function Home() {
         onFilterChange={setFilter}
         onNewCompany={handleNewCompany}
         onBatchImport={handleBatchImport}
+        credits={credits}
       />
 
       <CompanyList
@@ -549,6 +601,8 @@ export default function Home() {
             editedEmails={editedEmails}
             onEmailsChange={setEditedEmails}
             onRestore={handleRestore}
+            contacts={contacts}
+            onContactsUpdated={() => loadContactsFor(selectedCompany?.company)}
           />
         )}
       </div>

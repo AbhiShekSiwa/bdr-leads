@@ -36,6 +36,7 @@ const chipBase = {
 }
 
 export default function SequenceTab({
+  company,
   contactName,
   contactTitle,
   askType,
@@ -53,10 +54,63 @@ export default function SequenceTab({
   const [emails, setEmails] = useState(sequence?.emails || [])
   const [copiedIdx, setCopiedIdx] = useState(null)
   const [copyFallback, setCopyFallback] = useState('')
+  const [sentMap, setSentMap] = useState({})
+  const [replyStatus, setReplyStatus] = useState('No reply')
+  const [replyNotes, setReplyNotes] = useState('')
+  const [replySaved, setReplySaved] = useState(false)
+  const [replySaving, setReplySaving] = useState(false)
 
   useEffect(() => {
     setEmails(sequence?.emails || [])
+    setSentMap({})
+    setReplySaved(false)
   }, [sequence])
+
+  async function markSent(step) {
+    try {
+      const r = await fetch('/api/email-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company,
+          contactName,
+          emailStep: step,
+          status: 'Sent'
+        })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Failed to mark sent')
+      setSentMap((prev) => ({
+        ...prev,
+        [step]: new Date().toLocaleString()
+      }))
+    } catch (e) {
+      console.error(e)
+      alert(e.message)
+    }
+  }
+
+  async function saveReply() {
+    setReplySaving(true)
+    try {
+      const r = await fetch('/api/email-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company,
+          contactName,
+          replyStatus,
+          replyNotes
+        })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Failed to save reply')
+      setReplySaved(true)
+    } catch (e) {
+      alert(e.message)
+    }
+    setReplySaving(false)
+  }
 
   function updateBody(idx, body) {
     const next = emails.map((e, i) => (i === idx ? { ...e, body } : e))
@@ -237,14 +291,30 @@ export default function SequenceTab({
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    marginTop: 8
+                    marginTop: 8,
+                    flexWrap: 'wrap',
+                    gap: 6
                   }}>
                     <span style={{ fontSize: 12, fontWeight: 600, color: wordColor }}>
                       {words} words
                     </span>
-                    <button style={btnSecondary} onClick={() => copyEmail(email, idx)}>
-                      {copiedIdx === idx ? 'Copied!' : 'Copy email'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button style={btnSecondary} onClick={() => copyEmail(email, idx)}>
+                        {copiedIdx === idx ? 'Copied!' : 'Copy email'}
+                      </button>
+                      {sentMap[email.step || idx + 1] ? (
+                        <span style={{ fontSize: 12, color: '#059669', fontWeight: 500, padding: '6px 0' }}>
+                          Sent ✓ {sentMap[email.step || idx + 1]}
+                        </span>
+                      ) : (
+                        <button
+                          style={btnSecondary}
+                          onClick={() => markSent(email.step || idx + 1)}
+                        >
+                          Mark as sent
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )
@@ -280,6 +350,41 @@ export default function SequenceTab({
           <div style={{ fontSize: 12, color: '#d97706', lineHeight: 1.5 }}>
             Review all emails before sending. These are starting points, not finished copy.
           </div>
+
+          {Object.keys(sentMap).length > 0 && (
+            <div style={{
+              marginTop: 20,
+              padding: 14,
+              border: `0.5px solid ${colors.border}`,
+              borderRadius: 8,
+              background: colors.bg
+            }}>
+              <div style={labelStyle}>Reply tracking</div>
+              <select
+                style={{ ...inputStyle, marginBottom: 8, cursor: 'pointer' }}
+                value={replyStatus}
+                onChange={(e) => { setReplyStatus(e.target.value); setReplySaved(false) }}
+              >
+                {['No reply', 'Positive', 'Negative', 'Need more info', 'Meeting booked'].map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+              <textarea
+                style={{ ...inputStyle, minHeight: 60, resize: 'vertical', marginBottom: 8 }}
+                placeholder="Reply notes (optional)"
+                value={replyNotes}
+                onChange={(e) => { setReplyNotes(e.target.value); setReplySaved(false) }}
+              />
+              <button style={btnAccent} onClick={saveReply} disabled={replySaving}>
+                {replySaving ? 'Saving…' : 'Save reply'}
+              </button>
+              {replySaved && (
+                <span style={{ marginLeft: 10, fontSize: 12, color: '#059669', fontWeight: 500 }}>
+                  Reply logged ✓
+                </span>
+              )}
+            </div>
+          )}
         </>
       )}
 

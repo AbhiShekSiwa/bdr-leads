@@ -87,6 +87,9 @@ export default function BriefTab({
             ? (company.tags || []).join(', ')
             : '—'}
         </Section>
+        <Section title="What they do">{company.what || '—'}</Section>
+        <Section title="Colorado">{company.colorado || '—'}</Section>
+        <Section title="University">{company.university || '—'}</Section>
         <Section title="Notes">{company.notes || '—'}</Section>
         <Section title="Email pattern">{company.emailPattern || '—'}</Section>
         <Section title="LinkedIn">

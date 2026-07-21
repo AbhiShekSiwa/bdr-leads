@@ -1,4 +1,17 @@
-const { findEmailPattern, appendRow } = require('../../lib/sheets')
+const { findEmailPattern, saveResearch, saveHunterDomain, incrementCounter } = require('../../lib/sheets')
+
+function computeOutreachScore(brief) {
+  let score = 0
+  const warmth = (brief?.warmth || '').toLowerCase()
+  if (warmth === 'hot') score += 2.0
+  if (warmth === 'warm') score += 1.0
+  const tags = (brief?.tags || []).map((t) => String(t).toLowerCase())
+  if (tags.some((t) => t.includes('co') || t.includes('colorado'))) score += 2.0
+  if (tags.some((t) => t.includes('university') || t.includes('sponsor'))) score += 1.5
+  if (tags.some((t) => t.includes('propulsion') || t.includes('engine'))) score += 1.5
+  score += 1.0 // researching after save
+  return Math.min(10, Math.round(score * 10) / 10)
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -9,6 +22,7 @@ export default async function handler(req, res) {
   try {
     // 1. SERPER — web search for company info
     const searchResults = await searchCompany(company, poc)
+    incrementCounter('serper_used').catch((e) => console.error(e))
 
     // 2. GROQ — AI brief from search results
     const brief = await generateBrief(company, poc, pocRole, notes, searchResults)
@@ -16,7 +30,7 @@ export default async function handler(req, res) {
     // 3. Check sheet for existing email pattern first
     let emailData = null
     let patternFromSheet = null
-    
+
     try {
       patternFromSheet = await findEmailPattern(company)
     } catch (e) {
@@ -27,21 +41,29 @@ export default async function handler(req, res) {
       emailData = { pattern: patternFromSheet, fromSheet: true }
     } else if (!skipHunter) {
       emailData = await getEmailPattern(company)
+      if (emailData?.domain) {
+        try {
+          await saveHunterDomain(company, emailData.domain, emailData.pattern)
+          incrementCounter('hunter_used').catch((e) => console.error(e))
+        } catch (e) {
+          console.error('Hunter domain save failed:', e.message)
+        }
+      }
     }
 
-    // 4. Save to sheet
+    // 4. Persist research to Companies tab
+    const score = computeOutreachScore(brief)
     try {
-      await appendRow({
-        company: company.trim().replace(/\b\w/g, c => c.toUpperCase()),
-        warmth: brief.warmth,
-        pocName: poc || '',
-        position: pocRole || '',
-        emailPattern: emailData?.pattern || '',
-        pocEmail: '',
-        linkedIn: (searchResults.sources || []).filter(s => s.isLinkedIn).map(s => s.url).join(', '),
-        tags: brief.tags || [],
-        notes: notes || ''
-      })
+      await saveResearch(company.trim(), brief, brief.warmth, brief.tags || [], score)
+      if (notes) {
+        const { updateCompany } = require('../../lib/sheets')
+        await updateCompany(company.trim(), { notes })
+      }
+      const linkedIn = (searchResults.sources || []).filter((s) => s.isLinkedIn).map((s) => s.url).join(', ')
+      if (linkedIn) {
+        const { updateCompany } = require('../../lib/sheets')
+        await updateCompany(company.trim(), { linkedIn })
+      }
     } catch (e) {
       console.error('Sheet write failed:', e.message)
     }

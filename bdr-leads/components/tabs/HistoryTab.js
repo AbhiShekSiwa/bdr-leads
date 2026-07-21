@@ -21,6 +21,33 @@ function truncate(str, n) {
   return str.length > n ? str.slice(0, n) + '…' : str
 }
 
+function replyPill(status) {
+  const s = status || 'No reply'
+  const map = {
+    'No reply': { text: '#6b6b67', bg: '#f1f5f9', border: '#e2e8f0' },
+    Positive: { text: '#059669', bg: '#f0fdf4', border: '#bbf7d0' },
+    'Meeting booked': { text: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    Negative: { text: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+    'Need more info': { text: '#d97706', bg: '#fffbeb', border: '#fde68a' }
+  }
+  const p = map[s] || map['No reply']
+  return (
+    <span style={{
+      display: 'inline-block',
+      fontSize: 11,
+      fontWeight: 600,
+      color: p.text,
+      background: p.bg,
+      border: `0.5px solid ${p.border}`,
+      borderRadius: 99,
+      padding: '2px 8px',
+      marginTop: 4
+    }}>
+      {s}
+    </span>
+  )
+}
+
 export default function HistoryTab({ company, onRestore }) {
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -63,8 +90,8 @@ export default function HistoryTab({ company, onRestore }) {
     setExpanded((prev) => ({ ...prev, [idx]: !prev[idx] }))
   }
 
+  // Overwrites in-session sequence; prior versions remain in Sequences tab / History
   function handleRestore(emails) {
-    // Overwrites in-session sequence; prior versions remain in Sheet2 / History
     if (onRestore) onRestore(emails)
   }
 
@@ -135,6 +162,7 @@ export default function HistoryTab({ company, onRestore }) {
                 <div style={{ fontSize: 11, color: '#9b9b97', marginTop: 2 }}>
                   Generated: {formatGeneratedAt(item.generatedAt)}
                 </div>
+                {replyPill(item.replyReceived)}
               </div>
               <button
                 type="button"

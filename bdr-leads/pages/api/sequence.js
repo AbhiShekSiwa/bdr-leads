@@ -1,4 +1,4 @@
-const { saveSequence } = require('../../lib/sequences')
+const { saveSequence, incrementCounter } = require('../../lib/sheets')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -30,17 +30,17 @@ export default async function handler(req, res) {
       askType: typeof askType === 'string' ? askType : ''
     })
 
-    // Await so the write finishes before the serverless function freezes (Vercel).
-    // Still non-fatal: failures are logged and do not fail the sequence response.
+    incrementCounter('gemini_used').catch((e) => console.error(e))
+
+    // Await so Vercel doesn't drop the write; still non-fatal
     try {
-      const saved = await saveSequence({
+      await saveSequence({
         company: req.body.company,
         contactName: req.body.contactName || '',
-        contactTitle: req.body.contactTitle || '',
+        contactEmail: req.body.contactEmail || '',
         askType: req.body.askType || '',
         emails: sequence.emails
       })
-      if (!saved) console.error('History save returned false')
     } catch (err) {
       console.error('History save failed:', err)
     }
