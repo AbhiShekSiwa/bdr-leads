@@ -170,7 +170,14 @@ Return ONLY this exact JSON structure, no markdown fences, no explanation:
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
   if (!text) {
-    throw new Error('Gemini returned empty response — possible safety filter')
+    const apiErr = data.error?.message
+    const finish = data.candidates?.[0]?.finishReason
+    const detail = apiErr
+      || (finish ? `finishReason=${finish}` : null)
+      || 'possible safety filter or empty candidates'
+    const err = new Error(`Gemini returned empty response — ${detail}`)
+    err.raw = data
+    throw err
   }
 
   const clean = text.replace(/```json|```/g, '').trim()
