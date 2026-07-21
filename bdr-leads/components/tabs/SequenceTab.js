@@ -5,7 +5,7 @@ import {
 } from '../shared'
 
 export const FINANCIAL_ASK =
-  'Financial sponsorship to fund our ethanol/LOX engine hotfire campaign — targeting a long-duration test by May 2027'
+  'Financial sponsorship to fund our ethanol/LOX engine hotfire campaign, targeting a long-duration test by May 2027'
 
 const ASK_PRESETS = [
   {
@@ -18,11 +18,7 @@ const ASK_PRESETS = [
   },
   {
     chip: '🧠 Technical mentorship',
-    text: 'Technical mentorship — engineers from your team advising BDR on specific propulsion or systems engineering challenges'
-  },
-  {
-    chip: '🎓 Recruiting pipeline',
-    text: 'Recruiting pipeline — a relationship where BDR engineers can apply for internships or full-time roles at your company'
+    text: 'Technical mentorship: engineers from your team advising BDR on specific propulsion or systems engineering challenges'
   }
 ]
 
@@ -80,7 +76,7 @@ export default function SequenceTab({
   }
 
   const quality = emails.length === 3 ? checkSequence(emails) : null
-  // Exact match only — any edit away from a preset deactivates all chips (intentional)
+  // Exact match only: any edit away from a preset deactivates all chips (intentional)
   const activePreset = ASK_PRESETS.find((p) => p.text === askType)
 
   return (
@@ -135,7 +131,7 @@ export default function SequenceTab({
           rows={3}
           value={askType}
           onChange={(e) => onAskTypeChange(e.target.value)}
-          placeholder="Describe what BDR is looking for from this company — be specific. The more detail here, the better the emails."
+          placeholder="Describe what BDR is looking for from this company. Be specific. The more detail here, the better the emails."
         />
       </div>
 
@@ -295,7 +291,7 @@ export default function SequenceTab({
           borderRadius: 8,
           background: colors.bg
         }}>
-          <div style={{ ...labelStyle, marginBottom: 6 }}>Clipboard blocked — select and copy manually</div>
+          <div style={{ ...labelStyle, marginBottom: 6 }}>Clipboard blocked. Select and copy manually</div>
           <textarea
             style={{ ...inputStyle, minHeight: 100 }}
             value={copyFallback}
