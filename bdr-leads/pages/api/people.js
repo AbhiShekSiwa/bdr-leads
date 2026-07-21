@@ -152,10 +152,30 @@ function parseLinkedInTitle(raw) {
     title = title.replace(/\s+at\s+.+$/i, '').trim()
   }
 
+  // FIX 1 — Strip " @ Company" variants (space-at-space → end)
+  title = title.replace(/\s+@\s+.+$/i, '').trim()
+
   // If the "title" is just the company-ish leftover or empty, treat as no title
   if (!title || /^linkedin$/i.test(title)) {
     return { name, title: '' }
   }
+
+  // FIX 2 — Blank titles that look like company names (no role-indicator words)
+  const ROLE_INDICATORS = [
+    'engineer', 'director', 'manager', 'president', 'vp', 'vice', 'head', 'lead', 'officer',
+    'founder', 'coordinator', 'developer', 'analyst', 'scientist', 'recruiter', 'intern',
+    'associate', 'specialist', 'architect', 'designer', 'consultant', 'executive',
+    'cto', 'ceo', 'coo', 'cfo',
+    'principal', 'propulsion', 'systems', 'operations', 'strategy', 'business', 'partnerships',
+    'outreach', 'communications', 'marketing', 'sales'
+  ]
+  const hasRoleWord = ROLE_INDICATORS.some((word) => new RegExp(`\\b${word}\\b`, 'i').test(title))
+  if (!hasRoleWord) {
+    return { name, title: '' }
+  }
+
+  // FIX 3 — Strip trailing ellipsis junk
+  title = title.replace(/\s*\.{3}$/, '').trim()
 
   return { name, title }
 }
