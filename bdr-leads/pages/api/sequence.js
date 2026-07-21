@@ -30,14 +30,20 @@ export default async function handler(req, res) {
       askType: typeof askType === 'string' ? askType : ''
     })
 
-    // Save to history — non-blocking, never fails the request
-    saveSequence({
-      company: req.body.company,
-      contactName: req.body.contactName || '',
-      contactTitle: req.body.contactTitle || '',
-      askType: req.body.askType || '',
-      emails: sequence.emails
-    }).catch((err) => console.error('History save failed:', err))
+    // Await so the write finishes before the serverless function freezes (Vercel).
+    // Still non-fatal: failures are logged and do not fail the sequence response.
+    try {
+      const saved = await saveSequence({
+        company: req.body.company,
+        contactName: req.body.contactName || '',
+        contactTitle: req.body.contactTitle || '',
+        askType: req.body.askType || '',
+        emails: sequence.emails
+      })
+      if (!saved) console.error('History save returned false')
+    } catch (err) {
+      console.error('History save failed:', err)
+    }
 
     return res.status(200).json(sequence)
   } catch (err) {
