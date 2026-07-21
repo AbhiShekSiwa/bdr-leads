@@ -1,11 +1,11 @@
 /**
  * Pure email quality checks — no API calls.
- * Used client-side to flag model rule violations (word count, subject length, banned phrases, em-dashes).
+ * Used client-side to flag model rule violations.
  */
 
 const BANNED_PHRASES = [
   'hope this email finds you well',
-  'hope this finds you well',
+  'hope this finds you',
   'i hope you are',
   "i hope you're",
   'circle back',
@@ -20,7 +20,9 @@ const BANNED_PHRASES = [
   'per my last email',
   'as per',
   'leverage',
-  'seamless'
+  'seamless',
+  'we appreciate industry support',
+  'continued success'
 ]
 
 const HARD_CTAS = [
@@ -28,7 +30,18 @@ const HARD_CTAS = [
   'schedule a call now',
   "let's hop on",
   'click here',
-  'sign up'
+  'sign up now'
+]
+
+const VAGUE_SUBJECTS = [
+  'best wishes',
+  'following up',
+  'hello',
+  'hi there',
+  'checking in',
+  'quick question',
+  'introduction',
+  'connecting'
 ]
 
 function checkEmail(email) {
@@ -72,7 +85,7 @@ function checkEmail(email) {
     flags.push({
       severity: 'error',
       location: 'body',
-      message: 'Contains em-dash (—) — AI writing tell, replace with comma or period'
+      message: 'Contains em-dash (—) — replace with comma or period'
     })
   }
 
@@ -82,9 +95,19 @@ function checkEmail(email) {
       flags.push({
         severity: 'warn',
         location: 'body',
-        message: `Hard CTA detected: "${phrase}" — consider a softer ask`
+        message: `Hard CTA detected: "${phrase}" — soften this`
       })
     }
+  }
+
+  // 6. Vague subject check
+  const subjectLower = subject.trim().toLowerCase()
+  if (VAGUE_SUBJECTS.some((v) => subjectLower === v || subjectLower.includes(v))) {
+    flags.push({
+      severity: 'warn',
+      location: 'subject',
+      message: `Subject "${subject}" is too generic — make it specific to the company`
+    })
   }
 
   const passed = flags.filter((f) => f.severity === 'error').length === 0

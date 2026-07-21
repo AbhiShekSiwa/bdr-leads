@@ -1,13 +1,17 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ error: 'GEMINI_API_KEY not configured' })
+  }
+
   const {
     company,
     brief = {},
     signals = [],
     contactName = '',
     contactTitle = '',
-    askType
+    askType = 'financial_sponsorship'
   } = req.body || {}
 
   if (!company || typeof company !== 'string' || !company.trim()) {
@@ -26,122 +30,165 @@ export default async function handler(req, res) {
     return res.status(200).json(sequence)
   } catch (err) {
     console.error(err)
+    // Structured parse failures include { error, raw } already thrown as Error with .raw
+    if (err.raw !== undefined) {
+      return res.status(500).json({ error: err.message, raw: err.raw })
+    }
     return res.status(500).json({ error: err.message || 'Sequence generation failed' })
   }
 }
 
 async function generateSequence({ company, brief, signals, contactName, contactTitle, askType }) {
-  // Groq often ignores hard word-count / subject-length rules — qualityCheck.js catches those client-side.
-  // Groq's self-reported wordCount is frequently wrong (e.g. 0); UI should recount from body.
+  // Subject length / word count often drift — qualityCheck.js flags those client-side.
 
   const askDescriptions = {
     financial_sponsorship: 'financial sponsorship (cash contribution toward team expenses, materials, or competition fees)',
-    hardware_donation: 'hardware or component donation (valves, sensors, fittings, materials, or fabrication support)',
-    mentorship: 'mentorship or technical advising (engineers from their team advising BDR on specific technical challenges)',
-    internship_pipeline: 'internship pipeline (a relationship where BDR engineers can apply for internships at their company)'
+    hardware_donation: 'hardware or component donation (valves, sensors, fittings, raw materials, machining support)',
+    mentorship: 'technical mentorship (engineers from their team advising BDR on specific engineering challenges)',
+    internship_pipeline: 'internship pipeline (a relationship where BDR engineers can apply for roles at their company)'
   }
 
   const greeting = contactName ? `Hi ${contactName},` : 'Hi there,'
 
   const signalBlock = signals.length > 0
-    ? `Recent signals about this company:\n${signals.map((s) => `- ${s.text} (${s.source}, ${s.recency})`).join('\n')}`
-    : 'No recent signals found — use the company brief for context instead.'
+    ? `RECENT SIGNALS (use these as icebreaker material — they are specific and recent):\n` +
+      signals.map((s, i) => `${i + 1}. ${s.text} (${s.source}, ${s.recency})`).join('\n')
+    : `No recent signals found. Use specific details from the company brief instead.`
 
-  const briefBlock = `
-Company: ${company}
-What they do: ${brief.what || 'unknown'}
-Why they would care about BDR: ${brief.why || 'unknown'}
-Colorado presence: ${brief.colorado || 'unknown'}
-University programs: ${brief.university || 'unknown'}
-`.trim()
+  const briefBlock = [
+    `Company: ${company}`,
+    `What they do: ${brief.what || 'unknown'}`,
+    `Why they would care about BDR: ${brief.why || 'unknown'}`,
+    `Colorado presence: ${brief.colorado || 'unknown'}`,
+    `University/student programs: ${brief.university || 'unknown'}`
+  ].join('\n')
 
   const prompt = `
-You are writing a 3-email cold outreach sequence for Big Dumb Rockets (BDR), 
+You are a cold email copywriter writing on behalf of Big Dumb Rockets (BDR), 
 a 40+ member university liquid bipropellant rocket engineering team at CU Boulder.
-They are building a 1,400 lbf throttleable ethanol/LOX engine toward a 
-long-duration hotfire by May 2027. They hotfired their ablative engine in April 2026.
-Serious engineers, not a hobby club.
+They are building a 1,400 lbf throttleable ethanol/LOX engine toward a long-duration 
+hotfire by May 2027. They successfully hotfired their ablative engine in April 2026.
+This is a serious engineering team, not a hobby club.
 
-They are reaching out to ${company} asking for: ${askDescriptions[askType] || askType}
+They are reaching out to ${company} to ask for: 
+${askDescriptions[askType] || askType}
 
-Contact: ${contactName || 'unknown name'}, ${contactTitle || 'unknown title'}
+Contact name: ${contactName || 'not provided'}
+Contact title: ${contactTitle || 'not provided'}
 
+COMPANY RESEARCH:
 ${briefBlock}
 
 ${signalBlock}
 
-Write exactly 3 emails. OBEY THESE RULES — they are non-negotiable:
+YOUR JOB: Write exactly 3 emails that form a cold outreach sequence.
 
-RULES:
-1. Each body MUST be under 100 words. Count carefully.
-2. Subject lines MUST be under 33 characters. Short, specific, curiosity-driven.
-3. Email 1 (Day 0): Open with a SPECIFIC icebreaker from the signals or brief — 
-   something only someone who researched this company would know. 
-   Then one line on who BDR is. Then a soft ask (20-minute call, not "book a meeting").
-   Greeting: "${greeting}"
-4. Email 2 (Day 3): A COMPLETELY DIFFERENT angle — do not say "just following up". 
-   Reference a different signal or their university/community engagement. New value.
-   Greeting: "${greeting}"
-5. Email 3 (Day 7): Graceful exit. Low pressure. A genuine specific compliment 
-   about their work is fine here. Leave a good impression even if no reply ever comes.
-   Greeting: "${greeting}"
-6. BANNED — never use these: "hope this email finds you well", "hope this finds you", 
-   "circle back", "deep dive", "touch base", "synergy", "i came across", 
-   "i noticed your linkedin", "love your work", "reaching out because", 
-   "just following up", "leverage", "seamless"
-7. NO EM-DASHES (—). Use commas or periods instead. Em-dashes are an AI writing tell.
-8. Short paragraphs. One blank line between each. Mobile-optimized.
-9. Every email ends with a soft, low-friction ask — never a hard CTA.
-10. Sign-off on every email: "The BDR Team, CU Boulder"
-11. Include the actual word count for each email body in the JSON.
+HARD RULES — violating any of these is a failure:
+1. Each email body MUST be under 100 words. Count every word. Be ruthless.
+2. Subject lines MUST be under 33 characters total including spaces.
+3. NO em-dashes (—) anywhere. Use commas or periods instead.
+4. NEVER use these phrases: "hope this finds you", "circle back", "touch base", 
+   "deep dive", "synergy", "just following up", "reaching out because", 
+   "i noticed your linkedin", "love your work", "we appreciate industry support",
+   "continued success", "leverage", "seamless", "best wishes"
+5. NO hard CTAs. Never say "book a meeting", "schedule a call now", "click here".
+   Every email ends with a soft ask like "Would a 20-minute call make sense?" 
+   or "Worth a quick conversation?"
+6. Short paragraphs only. One blank line between each paragraph.
+7. Every email signs off with exactly: "The BDR Team, CU Boulder"
+8. Every email greeting is exactly: "${greeting}"
 
-Return ONLY valid JSON, no markdown fences, no preamble, no explanation:
+EMAIL REQUIREMENTS:
+
+Email 1 (Day 0) — The Icebreaker:
+- MUST open with something hyper-specific to ${company} from the signals or brief
+- Something only someone who actually researched them would know
+- NOT "I saw your website" or "I noticed your LinkedIn"
+- One line on who BDR is (mention the ethanol/LOX engine or the April 2026 hotfire)
+- Soft ask to connect
+- Subject: specific to this company, under 33 chars, creates curiosity
+
+Email 2 (Day 3) — New Angle:
+- Completely different angle from Email 1
+- Do NOT reference Email 1 or say anything like "following up"
+- Focus on a different signal OR their university/community engagement OR 
+  why their specific technology overlaps with what BDR is building
+- New value, new reason to reply
+- Subject: different from Email 1, still specific and under 33 chars
+
+Email 3 (Day 7) — Graceful Exit:
+- Low pressure, no desperation
+- A genuine specific compliment about something they actually built or did
+- Make it clear this is the last email
+- Leave a good impression regardless of whether they reply
+- Subject: warm but specific, not "Best Wishes" or "Final Note"
+
+SPECIFICITY TEST: Before writing each email, ask yourself — 
+"Could this exact email be sent to a different company?" 
+If yes, rewrite it until the answer is no.
+
+Return ONLY this exact JSON structure, no markdown fences, no explanation:
 {
   "emails": [
     {
       "step": 1,
       "day": 0,
-      "subject": "...",
-      "body": "...",
-      "wordCount": 0
+      "subject": "string under 33 chars",
+      "body": "string under 100 words",
+      "wordCount": actual_integer_count
     },
     {
       "step": 2,
       "day": 3,
-      "subject": "...",
-      "body": "...",
-      "wordCount": 0
+      "subject": "string under 33 chars",
+      "body": "string under 100 words",
+      "wordCount": actual_integer_count
     },
     {
       "step": 3,
       "day": 7,
-      "subject": "...",
-      "body": "...",
-      "wordCount": 0
+      "subject": "string under 33 chars",
+      "body": "string under 100 words",
+      "wordCount": actual_integer_count
     }
   ]
 }
 `
 
-  const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1500,
-      temperature: 0.6
-    })
-  })
+  const r = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 1200 }
+      })
+    }
+  )
   const data = await r.json()
-  const text = data.choices?.[0]?.message?.content || ''
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+
+  if (!text) {
+    throw new Error('Gemini returned empty response — possible safety filter')
+  }
+
   const clean = text.replace(/```json|```/g, '').trim()
   const match = clean.match(/\{[\s\S]*\}/)
-  if (!match) throw new Error('Could not parse AI response')
-  const parsed = JSON.parse(match[0])
+  if (!match) {
+    const err = new Error('Could not parse sequence response')
+    err.raw = text
+    throw err
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(match[0])
+  } catch (e) {
+    const err = new Error('Could not parse sequence response')
+    err.raw = text
+    throw err
+  }
 
   if (!Array.isArray(parsed.emails) || parsed.emails.length !== 3) {
     throw new Error('Sequence response malformed')
@@ -157,9 +204,10 @@ Return ONLY valid JSON, no markdown fences, no preamble, no explanation:
     }
   }
 
-  // Post-process: replace em-dashes (common AI tell) with commas — model often ignores the rule
+  // Belt-and-suspenders: strip em-dashes even when the model ignores the rule
   for (const email of parsed.emails) {
     email.body = email.body.replace(/—/g, ', ')
+    email.wordCount = email.body.split(/\s+/).filter(Boolean).length
   }
 
   return parsed
