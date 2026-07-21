@@ -73,4 +73,51 @@ async function appendRow(data) {
   })
 }
 
-module.exports = { findEmailPattern, appendRow }
+async function listCompanies() {
+  const rows = await getRows()
+  // Empty sheet or header-only → []
+  if (!rows.length || rows.length === 1) return []
+
+  return rows.slice(1)
+    .filter((row) => (row[0] || '').trim())
+    .map((row) => ({
+      company: row[0] || '',
+      warmth: row[1] || '',
+      pocName: row[2] || '',
+      position: row[3] || '',
+      emailPattern: row[4] || '',
+      pocEmail: row[5] || '',
+      // Column G may be a =HYPERLINK("url","View Profile") formula — UI should parse or skip
+      linkedIn: row[6] || '',
+      // Empty tags cell → [] (not ['']) via filter(Boolean)
+      tags: row[7] ? row[7].split(',').map((t) => t.trim()).filter(Boolean) : [],
+      status: row[8] || 'Not contacted',
+      notes: row[9] || '',
+      dateAdded: row[10] || ''
+    }))
+}
+
+async function updateStatus(company, newStatus) {
+  // Valid statuses (not enforced): 'Not contacted' | 'Researching' | 'Draft ready' | 'Sent' | 'Replied' | 'Pass'
+  const sheets = getClient()
+  const rows = await getRows()
+
+  // First match only if duplicates exist (safer/simpler than last-match)
+  const index = rows.findIndex((r) =>
+    r[0]?.toLowerCase().trim() === company.toLowerCase().trim()
+  )
+  if (index === -1) return null
+  // Skip accidental header match
+  if (index === 0 && rows[0]?.[0]?.toLowerCase().trim() === 'company') return null
+
+  const rowNumber = index + 1 // array index 0 = sheet row 1
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SHEET_ID,
+    range: `${SHEET_NAME}!I${rowNumber}`,
+    valueInputOption: 'USER_ENTERED',
+    requestBody: { values: [[newStatus]] }
+  })
+  return newStatus
+}
+
+module.exports = { findEmailPattern, appendRow, listCompanies, updateStatus }
