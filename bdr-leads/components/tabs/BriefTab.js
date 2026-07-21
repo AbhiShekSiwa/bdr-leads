@@ -47,13 +47,14 @@ export default function BriefTab({
             : '—'}
         </Section>
         <Section title="Notes">{company.notes || '—'}</Section>
-        <Section title="POC">
-          {[company.pocName?.trim(), company.position].filter(Boolean).join(' · ') || '—'}
-        </Section>
         <Section title="Email pattern">{company.emailPattern || '—'}</Section>
         <Section title="LinkedIn">
           {linkedIn
-            ? <a href={linkedIn} target="_blank" rel="noreferrer" style={{ color: colors.accent }}>{linkedIn}</a>
+            ? (
+              <a href={linkedIn} target="_blank" rel="noreferrer" style={{ color: colors.accent }}>
+                LinkedIn profile
+              </a>
+            )
             : '—'}
         </Section>
         <Section title="Date added">{company.dateAdded || '—'}</Section>

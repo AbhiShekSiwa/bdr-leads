@@ -41,7 +41,9 @@ export default function PeopleTab({
           >
             <div style={{ fontSize: 14, fontWeight: 600, color: colors.text }}>{p.name}</div>
             {p.title ? (
-              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{p.title}</div>
+              <div style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+                {p.title.length > 40 ? p.title.slice(0, 40) + '…' : p.title}
+              </div>
             ) : null}
             {p.url && (
               <a
@@ -61,7 +63,10 @@ export default function PeopleTab({
             <div style={{ marginTop: 10 }}>
               <button
                 style={btnSecondary}
-                onClick={() => onContactSelect(p.name || '', p.title || '')}
+                onClick={() => onContactSelect({
+                  name: (p.name || '').trim(),
+                  title: (p.title || '').trim()
+                })}
               >
                 Draft sequence for this person
               </button>

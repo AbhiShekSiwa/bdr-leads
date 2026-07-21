@@ -48,6 +48,15 @@ export default function Home() {
     loadCompanies(true)
   }, [])
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (selectedCompany?.company) {
+      document.title = `${toTitleCase(selectedCompany.company)} · Outreach OS`
+    } else {
+      document.title = 'Outreach OS'
+    }
+  }, [selectedCompany])
+
   async function loadCompanies(selectFirst = false) {
     setLoadingList(true)
     setError('')
@@ -273,9 +282,12 @@ export default function Home() {
     setLoadingSequence(false)
   }
 
-  function handleContactSelect(name, title) {
-    setContactName(name)
-    setContactTitle(title)
+  function handleContactSelect(contact) {
+    // Accept { name, title } from People tab — set BOTH fields before switching tab
+    const name = typeof contact === 'string' ? contact : (contact?.name || '')
+    const title = typeof contact === 'string' ? '' : (contact?.title || '')
+    setContactName(String(name).trim())
+    setContactTitle(String(title).trim())
     setActiveTab('sequence')
   }
 

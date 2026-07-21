@@ -35,11 +35,21 @@ export function parseLinkedIn(str) {
   if (!str || typeof str !== 'string') return ''
   const trimmed = str.trim()
   if (!trimmed) return ''
+
+  let url = trimmed
+  // =HYPERLINK("url","View Profile") — take the FIRST quoted string (the URL)
   if (trimmed.toUpperCase().startsWith('=HYPERLINK')) {
     const match = trimmed.match(/"([^"]+)"/)
-    return match ? match[1] : ''
+    url = match ? match[1].trim() : ''
   }
-  return trimmed
+
+  // Sheets values.get often returns the display label "View Profile" instead of the formula
+  if (!url || /^view profile$/i.test(url)) return ''
+  if (!/^https?:\/\//i.test(url) && !/linkedin\.com/i.test(url)) return ''
+  if (!/^https?:\/\//i.test(url) && /linkedin\.com/i.test(url)) {
+    url = `https://${url.replace(/^\/\//, '')}`
+  }
+  return url
 }
 
 export function outreachScore(company) {
