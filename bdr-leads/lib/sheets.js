@@ -36,6 +36,36 @@ function safeParseJSON(str, fallback) {
   }
 }
 
+/** First http(s) URL from a cell or comma-separated list */
+function firstUrl(value) {
+  if (!value) return ''
+  const s = String(value).trim()
+  if (s.toUpperCase().startsWith('=HYPERLINK')) {
+    const m = s.match(/"([^"]+)"/)
+    return m ? m[1].trim() : ''
+  }
+  const candidate = s.split(',')[0].trim()
+  if (/^https?:\/\//i.test(candidate)) return candidate
+  if (/linkedin\.com/i.test(candidate)) {
+    return candidate.startsWith('http') ? candidate : `https://${candidate.replace(/^\/\//, '')}`
+  }
+  return ''
+}
+
+/** Sheet-friendly clickable link. Use with valueInputOption USER_ENTERED. */
+function asHyperlink(urlOrCell, label = 'Open LinkedIn') {
+  const url = firstUrl(urlOrCell)
+  if (!url) return ''
+  const safeUrl = url.replace(/"/g, '""')
+  const safeLabel = String(label).replace(/"/g, '""')
+  return `=HYPERLINK("${safeUrl}","${safeLabel}")`
+}
+
+/** Extract URL from HYPERLINK formula or plain URL (for API/UI reads) */
+function fromHyperlink(cell) {
+  return firstUrl(cell)
+}
+
 async function getSheetId(sheets, tabName) {
   if (sheetIdCache[tabName] !== undefined) return sheetIdCache[tabName]
   const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID })
@@ -128,7 +158,8 @@ async function listCompanies() {
   const sheets = getClient()
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${TABS.companies}!A:O`
+    range: `${TABS.companies}!A:O`,
+    valueRenderOption: 'FORMULA'
   })
   const rows = res.data.values || []
   if (rows.length <= 1) return []
@@ -146,7 +177,7 @@ async function listCompanies() {
       university: r[8] || '',
       emailDomain: r[9] || '',
       emailPattern: r[10] || '',
-      linkedIn: r[11] || '',
+      linkedIn: fromHyperlink(r[11]),
       notes: r[12] || '',
       lastResearched: r[13] || '',
       dateAdded: r[14] || '',
@@ -171,7 +202,7 @@ async function appendCompany(data) {
     data.university || '',
     data.emailDomain || '',
     data.emailPattern || '',
-    data.linkedIn || '',
+    asHyperlink(data.linkedIn),
     data.notes || '',
     data.lastResearched || new Date().toISOString(),
     data.dateAdded || new Date().toLocaleDateString('en-US')
@@ -179,7 +210,7 @@ async function appendCompany(data) {
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
     range: `${TABS.companies}!A:O`,
-    valueInputOption: 'RAW',
+    valueInputOption: 'USER_ENTERED',
     requestBody: { values: [row] }
   })
 }
@@ -199,6 +230,7 @@ async function updateCompany(company, fields) {
     const colLetter = String.fromCharCode(65 + col) // A-O only (cols 0-14)
     let cellVal = value
     if (key === 'tags' && Array.isArray(value)) cellVal = value.join(', ')
+    if (key === 'linkedIn') cellVal = asHyperlink(value)
     if (cellVal == null) cellVal = ''
     data.push({
       range: `${TABS.companies}!${colLetter}${rowNum}`,
@@ -209,10 +241,55 @@ async function updateCompany(company, fields) {
   await sheets.spreadsheets.values.batchUpdate({
     spreadsheetId: SHEET_ID,
     requestBody: {
-      valueInputOption: 'RAW',
+      valueInputOption: 'USER_ENTERED',
       data
     }
   })
+}
+
+async function convertLinkedInColumns() {
+  const sheets = getClient()
+  const updates = []
+
+  // Companies LinkedIn = column L (index 11)
+  const co = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${TABS.companies}!L:L`,
+    valueRenderOption: 'FORMULA'
+  })
+  ;(co.data.values || []).forEach((row, i) => {
+    if (i === 0) return // header
+    const raw = row[0] || ''
+    if (!raw || String(raw).toUpperCase().startsWith('=HYPERLINK')) return
+    const formula = asHyperlink(raw)
+    if (!formula) return
+    updates.push({ range: `${TABS.companies}!L${i + 1}`, values: [[formula]] })
+  })
+
+  // Contacts LinkedIn URL = column D (index 3)
+  const ct = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${TABS.contacts}!D:D`,
+    valueRenderOption: 'FORMULA'
+  })
+  ;(ct.data.values || []).forEach((row, i) => {
+    if (i === 0) return
+    const raw = row[0] || ''
+    if (!raw || String(raw).toUpperCase().startsWith('=HYPERLINK')) return
+    const formula = asHyperlink(raw)
+    if (!formula) return
+    updates.push({ range: `${TABS.contacts}!D${i + 1}`, values: [[formula]] })
+  })
+
+  if (updates.length === 0) return 0
+  await sheets.spreadsheets.values.batchUpdate({
+    spreadsheetId: SHEET_ID,
+    requestBody: {
+      valueInputOption: 'USER_ENTERED',
+      data: updates
+    }
+  })
+  return updates.length
 }
 
 async function updateCompanyStatus(company, status) {
@@ -266,7 +343,7 @@ async function saveContacts(company, people) {
       company,
       p.name || '',
       p.title || '',
-      p.url || p.linkedInUrl || '',
+      asHyperlink(p.url || p.linkedInUrl),
       p.email || '',
       p.emailConfidence != null ? String(p.emailConfidence) : '',
       p.emailSource || '',
@@ -278,7 +355,7 @@ async function saveContacts(company, people) {
     await sheets.spreadsheets.values.append({
       spreadsheetId: SHEET_ID,
       range: `${TABS.contacts}!A:K`,
-      valueInputOption: 'RAW',
+      valueInputOption: 'USER_ENTERED',
       requestBody: { values: rows }
     })
   } catch (e) {
@@ -290,7 +367,8 @@ async function getContacts(company) {
   const sheets = getClient()
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${TABS.contacts}!A:K`
+    range: `${TABS.contacts}!A:K`,
+    valueRenderOption: 'FORMULA'
   })
   const rows = res.data.values || []
   if (rows.length <= 1) return []
@@ -301,8 +379,8 @@ async function getContacts(company) {
       company: r[0] || '',
       name: r[1] || '',
       title: r[2] || '',
-      linkedInUrl: r[3] || '',
-      url: r[3] || '',
+      linkedInUrl: fromHyperlink(r[3]),
+      url: fromHyperlink(r[3]),
       email: r[4] || '',
       emailConfidence: r[5] ? Number(r[5]) : null,
       emailSource: r[6] || '',
@@ -682,6 +760,7 @@ module.exports = {
   incrementCounter,
   resetCounter,
   findEmailPattern,
+  convertLinkedInColumns,
   // legacy name used by status.js before rename
   updateStatus: updateCompanyStatus
 }

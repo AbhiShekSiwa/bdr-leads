@@ -59,7 +59,9 @@ export default async function handler(req, res) {
         const { updateCompany } = require('../../lib/sheets')
         await updateCompany(company.trim(), { notes })
       }
-      const linkedIn = (searchResults.sources || []).filter((s) => s.isLinkedIn).map((s) => s.url).join(', ')
+      const linkedIn = (searchResults.sources || [])
+        .filter((s) => s.isLinkedIn)
+        .map((s) => s.url)[0] || ''
       if (linkedIn) {
         const { updateCompany } = require('../../lib/sheets')
         await updateCompany(company.trim(), { linkedIn })

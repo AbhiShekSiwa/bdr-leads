@@ -1,4 +1,5 @@
 const { runSetup } = require('../../lib/setupSheets')
+const { convertLinkedInColumns } = require('../../lib/sheets')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -9,7 +10,9 @@ export default async function handler(req, res) {
 
   try {
     const log = await runSetup()
-    return res.status(200).json({ ok: true, log })
+    const converted = await convertLinkedInColumns()
+    log.push(`✓ Converted ${converted} LinkedIn cell(s) to hyperlinks`)
+    return res.status(200).json({ ok: true, log, converted })
   } catch (err) {
     console.error(err)
     return res.status(500).json({ error: err.message })

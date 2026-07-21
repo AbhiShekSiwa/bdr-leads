@@ -6,6 +6,7 @@
 require('./loadEnv')
 const { google } = require('googleapis')
 const { runSetup } = require('../lib/setupSheets')
+const { convertLinkedInColumns } = require('../lib/sheets')
 
 const SHEET_ID = '1X8JsRyRtekCqPFroUei-FACRU6ySAkis3IN-3WqlVgk'
 
@@ -87,6 +88,10 @@ async function applyWrapFormatting() {
 
 runSetup()
   .then(() => applyWrapFormatting())
+  .then(() => convertLinkedInColumns())
+  .then((n) => {
+    console.log(`✓ Converted ${n} LinkedIn cell(s) to hyperlinks`)
+  })
   .catch((e) => {
     console.error(e)
     process.exit(1)
