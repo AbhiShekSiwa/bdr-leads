@@ -162,7 +162,12 @@ Return ONLY this exact JSON structure, no markdown fences, no explanation:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 1200 }
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 4096,
+          // Flash models spend tokens on internal "thinking"; disable so JSON isn't truncated
+          thinkingConfig: { thinkingBudget: 0 }
+        }
       })
     }
   )
