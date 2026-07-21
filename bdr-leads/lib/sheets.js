@@ -53,11 +53,12 @@ function firstUrl(value) {
 }
 
 /** Sheet-friendly clickable link. Use with valueInputOption USER_ENTERED. */
-function asHyperlink(urlOrCell, label = 'Open LinkedIn') {
+function asHyperlink(urlOrCell, label) {
   const url = firstUrl(urlOrCell)
   if (!url) return ''
+  const display = String(label || '').trim() || 'LinkedIn'
   const safeUrl = url.replace(/"/g, '""')
-  const safeLabel = String(label).replace(/"/g, '""')
+  const safeLabel = display.replace(/"/g, '""')
   return `=HYPERLINK("${safeUrl}","${safeLabel}")`
 }
 
@@ -202,7 +203,7 @@ async function appendCompany(data) {
     data.university || '',
     data.emailDomain || '',
     data.emailPattern || '',
-    asHyperlink(data.linkedIn),
+    asHyperlink(data.linkedIn, data.company),
     data.notes || '',
     data.lastResearched || new Date().toISOString(),
     data.dateAdded || new Date().toLocaleDateString('en-US')
@@ -230,7 +231,7 @@ async function updateCompany(company, fields) {
     const colLetter = String.fromCharCode(65 + col) // A-O only (cols 0-14)
     let cellVal = value
     if (key === 'tags' && Array.isArray(value)) cellVal = value.join(', ')
-    if (key === 'linkedIn') cellVal = asHyperlink(value)
+    if (key === 'linkedIn') cellVal = asHyperlink(value, company)
     if (cellVal == null) cellVal = ''
     data.push({
       range: `${TABS.companies}!${colLetter}${rowNum}`,
@@ -251,33 +252,35 @@ async function convertLinkedInColumns() {
   const sheets = getClient()
   const updates = []
 
-  // Companies LinkedIn = column L (index 11)
+  // Companies: A = name, L = LinkedIn — label with company name
   const co = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${TABS.companies}!L:L`,
+    range: `${TABS.companies}!A:L`,
     valueRenderOption: 'FORMULA'
   })
   ;(co.data.values || []).forEach((row, i) => {
     if (i === 0) return // header
-    const raw = row[0] || ''
-    if (!raw || String(raw).toUpperCase().startsWith('=HYPERLINK')) return
-    const formula = asHyperlink(raw)
-    if (!formula) return
+    const name = row[0] || ''
+    const raw = row[11] || ''
+    if (!raw) return
+    const formula = asHyperlink(raw, name)
+    if (!formula || formula === String(raw).trim()) return
     updates.push({ range: `${TABS.companies}!L${i + 1}`, values: [[formula]] })
   })
 
-  // Contacts LinkedIn URL = column D (index 3)
+  // Contacts: B = name, D = LinkedIn — label with person name
   const ct = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${TABS.contacts}!D:D`,
+    range: `${TABS.contacts}!A:D`,
     valueRenderOption: 'FORMULA'
   })
   ;(ct.data.values || []).forEach((row, i) => {
     if (i === 0) return
-    const raw = row[0] || ''
-    if (!raw || String(raw).toUpperCase().startsWith('=HYPERLINK')) return
-    const formula = asHyperlink(raw)
-    if (!formula) return
+    const name = row[1] || ''
+    const raw = row[3] || ''
+    if (!raw) return
+    const formula = asHyperlink(raw, name)
+    if (!formula || formula === String(raw).trim()) return
     updates.push({ range: `${TABS.contacts}!D${i + 1}`, values: [[formula]] })
   })
 
@@ -343,7 +346,7 @@ async function saveContacts(company, people) {
       company,
       p.name || '',
       p.title || '',
-      asHyperlink(p.url || p.linkedInUrl),
+      asHyperlink(p.url || p.linkedInUrl, p.name),
       p.email || '',
       p.emailConfidence != null ? String(p.emailConfidence) : '',
       p.emailSource || '',
