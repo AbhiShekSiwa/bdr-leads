@@ -293,6 +293,13 @@ export default function Home() {
     setActiveTab('sequence')
   }
 
+  function handleRestore(emails) {
+    // Loads prior sequence into Sequence tab (overwrites in-session draft; still in Sheet2)
+    setSequence({ emails })
+    setEditedEmails(emails)
+    setActiveTab('sequence')
+  }
+
   async function runBatch() {
     const lines = batchText.trim().split('\n').filter((l) => l.trim())
     if (lines.length === 0) {
@@ -541,6 +548,7 @@ export default function Home() {
             sequence={sequence}
             editedEmails={editedEmails}
             onEmailsChange={setEditedEmails}
+            onRestore={handleRestore}
           />
         )}
       </div>

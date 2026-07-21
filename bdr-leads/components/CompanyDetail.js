@@ -38,7 +38,8 @@ export default function CompanyDetail({
   sequence,
   editedEmails,
   onEmailsChange,
-  onStatusUpdate
+  onStatusUpdate,
+  onRestore
 }) {
   if (!company) {
     return (
@@ -127,7 +128,12 @@ export default function CompanyDetail({
         {activeTab === 'quality' && (
           <QualityTab sequence={sequence} editedEmails={editedEmails} />
         )}
-        {activeTab === 'history' && <HistoryTab />}
+        {activeTab === 'history' && (
+          <HistoryTab
+            company={company.company}
+            onRestore={onRestore}
+          />
+        )}
       </div>
     </div>
   )

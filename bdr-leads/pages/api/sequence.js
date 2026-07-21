@@ -1,3 +1,5 @@
+const { saveSequence } = require('../../lib/sequences')
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
@@ -27,6 +29,16 @@ export default async function handler(req, res) {
       contactTitle: typeof contactTitle === 'string' ? contactTitle : '',
       askType: typeof askType === 'string' ? askType : ''
     })
+
+    // Save to history — non-blocking, never fails the request
+    saveSequence({
+      company: req.body.company,
+      contactName: req.body.contactName || '',
+      contactTitle: req.body.contactTitle || '',
+      askType: req.body.askType || '',
+      emails: sequence.emails
+    }).catch((err) => console.error('History save failed:', err))
+
     return res.status(200).json(sequence)
   } catch (err) {
     console.error(err)
