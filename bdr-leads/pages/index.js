@@ -1,216 +1,532 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Sidebar from '../components/Sidebar'
+import CompanyList from '../components/CompanyList'
+import CompanyDetail from '../components/CompanyDetail'
 import ResultCard from '../components/ResultCard'
 import { exportToCSV } from '../lib/exportCSV'
-
-const s = {
-  page: { minHeight: '100vh', background: '#f8f8f6', padding: '2rem 1rem' },
-  inner: { maxWidth: 760, margin: '0 auto' },
-  header: { marginBottom: '2rem' },
-  h1: { fontSize: 24, fontWeight: 600, color: '#1a1a18', marginBottom: 4 },
-  sub: { fontSize: 14, color: '#6b6b67' },
-  tabs: { display: 'flex', gap: 0, marginBottom: '1.5rem', border: '0.5px solid #e4e4e0', borderRadius: 8, overflow: 'hidden', width: 'fit-content' },
-  tab: (active) => ({
-    padding: '8px 20px', fontSize: 14, cursor: 'pointer', border: 'none',
-    background: active ? '#1a1a18' : '#fff', color: active ? '#fff' : '#6b6b67',
-    fontWeight: active ? 500 : 400, transition: 'all 0.15s'
-  }),
-  card: { background: '#fff', border: '0.5px solid #e4e4e0', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' },
-  label: { fontSize: 12, fontWeight: 600, color: '#9b9b97', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, display: 'block' },
-  input: { width: '100%', border: '0.5px solid #d0d0cc', borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#1a1a18', outline: 'none' },
-  textarea: { width: '100%', border: '0.5px solid #d0d0cc', borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'inherit', background: '#fff', color: '#1a1a18', outline: 'none', resize: 'vertical', minHeight: 80 },
-  grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 },
-  field: { marginBottom: 12 },
-  btnPrimary: { background: '#1a1a18', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 500, cursor: 'pointer' },
-  btnSecondary: { background: '#fff', color: '#1a1a18', border: '0.5px solid #d0d0cc', borderRadius: 8, padding: '10px 20px', fontSize: 14, cursor: 'pointer' },
-  btnRow: { display: 'flex', gap: 8, alignItems: 'center', marginTop: 16 },
-  status: { fontSize: 13, color: '#6b6b67', display: 'flex', alignItems: 'center', gap: 8 },
-  error: { fontSize: 13, color: '#dc2626', marginTop: 8 },
-  dot: { width: 8, height: 8, borderRadius: '50%', background: '#2563eb', animation: 'pulse 1s infinite' },
-}
+import { colors, toTitleCase, labelStyle, inputStyle, btnPrimary, btnSecondary } from '../components/shared'
 
 export default function Home() {
-  const [tab, setTab] = useState('single')
-
-  // Single mode state
-  const [form, setForm] = useState({ company: '', poc: '', pocRole: '', notes: '', skipHunter: true })
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
+  const [companies, setCompanies] = useState([])
+  const [selectedCompany, setSelectedCompany] = useState(null)
+  const [filter, setFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [activeTab, setActiveTab] = useState('brief')
+  const [loadingList, setLoadingList] = useState(false)
+  const [loadingResearch, setLoadingResearch] = useState(false)
+  const [loadingPeople, setLoadingPeople] = useState(false)
+  const [loadingSignals, setLoadingSignals] = useState(false)
+  const [loadingSequence, setLoadingSequence] = useState(false)
+  const [researchResult, setResearchResult] = useState(null)
+  const [people, setPeople] = useState([])
+  const [signals, setSignals] = useState([])
+  const [sequence, setSequence] = useState(null)
+  const [editedEmails, setEditedEmails] = useState([])
+  const [contactName, setContactName] = useState('')
+  const [contactTitle, setContactTitle] = useState('')
+  const [askType, setAskType] = useState('financial_sponsorship')
+  const [showNewCompany, setShowNewCompany] = useState(false)
+  const [showBatch, setShowBatch] = useState(false)
+  const [isNarrow, setIsNarrow] = useState(false)
   const [error, setError] = useState('')
 
-  // Batch mode state
+  // New company form
+  const [newCompany, setNewCompany] = useState('')
+  const [newNotes, setNewNotes] = useState('')
+
+  // Batch state (existing functionality)
   const [batchText, setBatchText] = useState('')
   const [batchLoading, setBatchLoading] = useState(false)
   const [batchResults, setBatchResults] = useState([])
   const [batchError, setBatchError] = useState('')
   const [batchProgress, setBatchProgress] = useState('')
 
-  async function runSingle() {
-    if (!form.company.trim()) { setError('Company name is required'); return }
-    setLoading(true); setError(''); setResult(null)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 900) {
+      setIsNarrow(true)
+    }
+    loadCompanies(true)
+  }, [])
+
+  async function loadCompanies(selectFirst = false) {
+    setLoadingList(true)
+    setError('')
+    try {
+      const r = await fetch('/api/list')
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Failed to load companies')
+      const list = data.companies || []
+      setCompanies(list)
+      if (selectFirst && list.length > 0) {
+        setSelectedCompany(list[0])
+        setShowNewCompany(false)
+        setShowBatch(false)
+      }
+    } catch (e) {
+      setError(e.message)
+    }
+    setLoadingList(false)
+  }
+
+  function resetWorkingState() {
+    setPeople([])
+    setSignals([])
+    setSequence(null)
+    setEditedEmails([])
+    setResearchResult(null)
+    setContactName('')
+    setContactTitle('')
+    setAskType('financial_sponsorship')
+  }
+
+  function handleSelectCompany(company) {
+    if (
+      selectedCompany &&
+      selectedCompany.company !== company.company &&
+      sequence
+    ) {
+      const ok = window.confirm('Switch companies? Your current sequence will be cleared.')
+      if (!ok) return
+    }
+    setSelectedCompany(company)
+    setShowNewCompany(false)
+    setShowBatch(false)
+    resetWorkingState()
+  }
+
+  function handleNewCompany() {
+    setShowNewCompany(true)
+    setShowBatch(false)
+    setSelectedCompany(null)
+    resetWorkingState()
+  }
+
+  function handleBatchImport() {
+    setShowBatch(true)
+    setShowNewCompany(false)
+  }
+
+  async function updateCompanyStatus(companyName, status) {
+    try {
+      const r = await fetch('/api/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company: companyName, status })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Status update failed')
+      setCompanies((prev) =>
+        prev.map((c) => (c.company === companyName ? { ...c, status } : c))
+      )
+      setSelectedCompany((prev) =>
+        prev && prev.company === companyName ? { ...prev, status } : prev
+      )
+    } catch (e) {
+      console.error(e)
+      setError(e.message)
+    }
+  }
+
+  async function handleResearch() {
+    if (!selectedCompany?.company) return
+    setLoadingResearch(true)
+    setError('')
     try {
       const r = await fetch('/api/research', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
+        body: JSON.stringify({
+          company: selectedCompany.company,
+          notes: selectedCompany.notes || '',
+          skipHunter: true
+        })
       })
       const data = await r.json()
-      if (!r.ok) throw new Error(data.error)
-      setResult({ company: form.company, ...data })
+      if (!r.ok) throw new Error(data.error || 'Research failed')
+      setResearchResult(data)
+      await updateCompanyStatus(selectedCompany.company, 'Researching')
+      await loadCompanies(false)
     } catch (e) {
       setError(e.message)
     }
-    setLoading(false)
+    setLoadingResearch(false)
+  }
+
+  async function handleNewCompanySubmit() {
+    if (!newCompany.trim()) {
+      setError('Company name is required')
+      return
+    }
+    setLoadingResearch(true)
+    setError('')
+    try {
+      const r = await fetch('/api/research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company: newCompany.trim(),
+          notes: newNotes.trim(),
+          skipHunter: true
+        })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Research failed')
+      setResearchResult(data)
+      await loadCompanies(false)
+      // Select the newly researched company (match by name)
+      const listRes = await fetch('/api/list')
+      const listData = await listRes.json()
+      const list = listData.companies || []
+      setCompanies(list)
+      const match = list.find(
+        (c) => c.company.toLowerCase().trim() === newCompany.trim().toLowerCase()
+      ) || list[list.length - 1]
+      if (match) {
+        setSelectedCompany(match)
+        setShowNewCompany(false)
+        setActiveTab('brief')
+        setPeople([])
+        setSignals([])
+        setSequence(null)
+        setEditedEmails([])
+        setContactName('')
+        setContactTitle('')
+      }
+      setNewCompany('')
+      setNewNotes('')
+    } catch (e) {
+      setError(e.message)
+    }
+    setLoadingResearch(false)
+  }
+
+  async function handleFindPeople() {
+    if (!selectedCompany?.company) return
+    setLoadingPeople(true)
+    setError('')
+    try {
+      const r = await fetch('/api/people', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company: selectedCompany.company })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'People search failed')
+      setPeople(data.people || [])
+    } catch (e) {
+      setError(e.message)
+    }
+    setLoadingPeople(false)
+  }
+
+  async function handleScanSignals() {
+    if (!selectedCompany?.company) return
+    setLoadingSignals(true)
+    setError('')
+    try {
+      const r = await fetch('/api/signals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ company: selectedCompany.company })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Signal scan failed')
+      setSignals(data.signals || [])
+    } catch (e) {
+      setError(e.message)
+    }
+    setLoadingSignals(false)
+  }
+
+  async function handleGenerateSequence() {
+    if (!selectedCompany?.company) return
+    setLoadingSequence(true)
+    setError('')
+    try {
+      const brief = researchResult?.brief || {
+        what: (selectedCompany.tags || []).join(', '),
+        why: '',
+        colorado: '',
+        university: '',
+        angle: ''
+      }
+      const r = await fetch('/api/sequence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company: selectedCompany.company,
+          brief,
+          signals,
+          contactName,
+          contactTitle,
+          askType
+        })
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Sequence generation failed')
+      setSequence(data)
+      setEditedEmails(data.emails || [])
+      await updateCompanyStatus(selectedCompany.company, 'Draft ready')
+    } catch (e) {
+      setError(e.message)
+    }
+    setLoadingSequence(false)
+  }
+
+  function handleContactSelect(name, title) {
+    setContactName(name)
+    setContactTitle(title)
+    setActiveTab('sequence')
   }
 
   async function runBatch() {
-    const lines = batchText.trim().split('\n').filter(l => l.trim())
-    if (lines.length === 0) { setBatchError('Paste at least one company name'); return }
-
-    const companies = lines.map(line => {
-      const parts = line.split(',').map(p => p.trim())
+    const lines = batchText.trim().split('\n').filter((l) => l.trim())
+    if (lines.length === 0) {
+      setBatchError('Paste at least one company name')
+      return
+    }
+    const items = lines.map((line) => {
+      const parts = line.split(',').map((p) => p.trim())
       return { company: parts[0], poc: parts[1] || '', pocRole: parts[2] || '', notes: parts[3] || '' }
     })
-
-    setBatchLoading(true); setBatchError(''); setBatchResults([])
-
+    setBatchLoading(true)
+    setBatchError('')
+    setBatchResults([])
     const allResults = []
-    for (let i = 0; i < companies.length; i++) {
-      setBatchProgress(`Researching ${i + 1} of ${companies.length}: ${companies[i].company}…`)
+    for (let i = 0; i < items.length; i++) {
+      setBatchProgress(`Researching ${i + 1} of ${items.length}: ${items[i].company}…`)
       try {
         const r = await fetch('/api/research', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...companies[i], skipHunter: true })
+          body: JSON.stringify({ ...items[i], skipHunter: true })
         })
         const data = await r.json()
-        allResults.push({ company: companies[i].company, ...data, success: !data.error })
+        allResults.push({ company: items[i].company, ...data, success: !data.error })
       } catch (e) {
-        allResults.push({ company: companies[i].company, success: false, error: e.message })
+        allResults.push({ company: items[i].company, success: false, error: e.message })
       }
       setBatchResults([...allResults])
-      if (i < companies.length - 1) await new Promise(res => setTimeout(res, 900))
+      if (i < items.length - 1) await new Promise((res) => setTimeout(res, 900))
     }
-
     setBatchProgress('')
     setBatchLoading(false)
+    await loadCompanies(false)
   }
 
-  const allResults = tab === 'single' ? (result ? [result] : []) : batchResults
+  if (isNarrow) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: colors.bg,
+        padding: 24,
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 15, color: colors.muted, maxWidth: 360, lineHeight: 1.6 }}>
+          Outreach OS is designed for desktop. Please open on a larger screen.
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div style={s.page}>
+    <div style={{
+      height: '100vh',
+      display: 'flex',
+      background: colors.bg,
+      overflow: 'hidden',
+      fontFamily: 'inherit'
+    }}>
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-        input:focus, textarea:focus { border-color: #2563eb !important; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-        button:hover { opacity: 0.85; }
+        input:focus, textarea:focus, select:focus {
+          border-color: #2563eb !important;
+          box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        * { box-sizing: border-box; }
       `}</style>
 
-      <div style={s.inner}>
-        <div style={s.header}>
-          <h1 style={s.h1}>🚀 BDR Sponsorship Research</h1>
-          <p style={s.sub}>Find leads, get AI briefs, discover email patterns — all free APIs.</p>
-        </div>
+      <Sidebar
+        filter={filter}
+        onFilterChange={setFilter}
+        onNewCompany={handleNewCompany}
+        onBatchImport={handleBatchImport}
+      />
 
-        {/* Tabs */}
-        <div style={s.tabs}>
-          <button style={s.tab(tab === 'single')} onClick={() => setTab('single')}>Single company</button>
-          <button style={s.tab(tab === 'batch')} onClick={() => setTab('batch')}>Batch list</button>
-        </div>
+      <CompanyList
+        companies={companies}
+        selectedCompany={selectedCompany}
+        onSelect={handleSelectCompany}
+        search={search}
+        onSearchChange={setSearch}
+        filter={filter}
+        loadingList={loadingList}
+      />
 
-        {/* Single mode */}
-        {tab === 'single' && (
-          <div style={s.card}>
-            <div style={s.grid2}>
-              <div style={s.field}>
-                <label style={s.label}>Company name *</label>
-                <input style={s.input} placeholder="e.g. Agile Space Industries"
-                  value={form.company} onChange={e => setForm({ ...form, company: e.target.value })}
-                  onKeyDown={e => e.key === 'Enter' && runSingle()} />
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>Point of contact (optional)</label>
-                <input style={s.input} placeholder="e.g. Jane Smith"
-                  value={form.poc} onChange={e => setForm({ ...form, poc: e.target.value })} />
-              </div>
-            </div>
-            <div style={s.grid2}>
-              <div style={s.field}>
-                <label style={s.label}>Point of contact title / role</label>
-                <input style={s.input} placeholder="e.g. University Relations Manager"
-                  value={form.pocRole} onChange={e => setForm({ ...form, pocRole: e.target.value })} />
-              </div>
-              <div style={s.field}>
-                <label style={s.label}>Notes you already have</label>
-                <input style={s.input} placeholder="e.g. CO based, met at AIAA"
-                  value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-              <label style={{ fontSize: 13, color: '#6b6b67', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                <input type="checkbox" checked={!form.skipHunter}
-                  onChange={e => setForm({ ...form, skipHunter: !e.target.checked })} />
-                Include Hunter.io email pattern lookup (uses 1 of 50 monthly credits)
-              </label>
-            </div>
-            <div style={s.btnRow}>
-              <button style={s.btnPrimary} onClick={runSingle} disabled={loading}>
-                {loading ? 'Researching…' : 'Research this company →'}
-              </button>
-              {loading && <div style={s.status}><div style={s.dot} /> Searching web + generating brief (~20s)</div>}
-            </div>
-            {error && <div style={s.error}>{error}</div>}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100%' }}>
+        {error && (
+          <div style={{
+            padding: '8px 16px',
+            background: '#fef2f2',
+            borderBottom: '0.5px solid #fecaca',
+            color: '#dc2626',
+            fontSize: 13,
+            flexShrink: 0
+          }}>
+            {error}
+            <button
+              onClick={() => setError('')}
+              style={{
+                marginLeft: 12,
+                border: 'none',
+                background: 'transparent',
+                color: '#dc2626',
+                cursor: 'pointer',
+                fontSize: 12
+              }}
+            >
+              dismiss
+            </button>
           </div>
         )}
 
-        {/* Batch mode */}
-        {tab === 'batch' && (
-          <div style={s.card}>
-            <label style={s.label}>Paste companies — one per line</label>
-            <p style={{ fontSize: 13, color: '#9b9b97', marginBottom: 8 }}>
-              Format: <code style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>Company Name, POC Name, POC Role, Notes</code> &nbsp;(only company name required)
+        {showBatch ? (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: colors.surface }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: colors.text, marginBottom: 4 }}>
+              Batch import
+            </div>
+            <p style={{ fontSize: 13, color: colors.muted, marginBottom: 16 }}>
+              Research multiple companies at once. Format: Company Name, POC Name, POC Role, Notes
             </p>
-            <textarea style={s.textarea} rows={8}
-              placeholder={`Agile Space Industries\nSeco Seals, Chris DeSandro, , website says they sponsor rocket clubs\nRedwire Space, Shane Layton`}
-              value={batchText} onChange={e => setBatchText(e.target.value)} />
-            <p style={{ fontSize: 12, color: '#9b9b97', marginTop: 4, marginBottom: 12 }}>
-              Hunter.io is skipped in batch mode to preserve credits. Run single mode on your best leads to get email patterns.
-            </p>
-            <div style={s.btnRow}>
-              <button style={s.btnPrimary} onClick={runBatch} disabled={batchLoading}>
-                {batchLoading ? 'Researching…' : `Research ${batchText.trim().split('\n').filter(l => l.trim()).length || 0} companies →`}
+            <label style={labelStyle}>Paste companies — one per line</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: 160, resize: 'vertical', marginBottom: 12 }}
+              value={batchText}
+              onChange={(e) => setBatchText(e.target.value)}
+              placeholder={`Agile Space Industries\nSeco Seals, Chris DeSandro`}
+            />
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <button style={btnPrimary} onClick={runBatch} disabled={batchLoading}>
+                {batchLoading
+                  ? 'Researching…'
+                  : `Research ${batchText.trim().split('\n').filter((l) => l.trim()).length || 0} companies →`}
               </button>
               {batchResults.length > 0 && (
-                <button style={s.btnSecondary} onClick={() => exportToCSV(batchResults)}>
+                <button style={btnSecondary} onClick={() => exportToCSV(batchResults)}>
                   Download CSV
                 </button>
               )}
+              <button style={btnSecondary} onClick={() => setShowBatch(false)}>
+                Close
+              </button>
             </div>
-            {batchProgress && <div style={{ ...s.status, marginTop: 8 }}><div style={s.dot} />{batchProgress}</div>}
-            {batchError && <div style={s.error}>{batchError}</div>}
+            {batchProgress && (
+              <div style={{ fontSize: 13, color: colors.muted, marginBottom: 8 }}>{batchProgress}</div>
+            )}
+            {batchError && <div style={{ fontSize: 13, color: '#dc2626' }}>{batchError}</div>}
+            {batchResults.map((r, i) =>
+              r.success === false ? (
+                <div key={i} style={{
+                  border: `0.5px solid ${colors.border}`,
+                  borderRadius: 8,
+                  padding: 12,
+                  marginBottom: 8,
+                  color: '#dc2626',
+                  fontSize: 14
+                }}>
+                  <strong>{toTitleCase(r.company)}</strong> — failed: {r.error}
+                </div>
+              ) : (
+                <ResultCard key={i} data={r} company={r.company} />
+              )
+            )}
           </div>
-        )}
-
-        {/* Results */}
-        {allResults.length > 0 && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 500, color: '#1a1a18' }}>
-                {allResults.length} result{allResults.length !== 1 ? 's' : ''}
-              </h2>
-              {allResults.length > 0 && (
-                <button style={s.btnSecondary} onClick={() => exportToCSV(allResults)}>
-                  Download CSV
-                </button>
-              )}
+        ) : showNewCompany || !selectedCompany ? (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: colors.surface }}>
+            <div style={{ fontSize: 18, fontWeight: 600, color: colors.text, marginBottom: 4 }}>
+              + New company
             </div>
-            {allResults.map((r, i) => (
-              r.success === false
-                ? <div key={i} style={{ ...s.card, color: '#dc2626', fontSize: 14 }}>
-                    <strong>{r.company}</strong> — failed: {r.error}
-                  </div>
-                : <ResultCard key={i} data={r} company={r.company} />
-            ))}
+            <p style={{ fontSize: 13, color: colors.muted, marginBottom: 20 }}>
+              Research a company and add it to your pipeline.
+            </p>
+            <div style={{ marginBottom: 12, maxWidth: 480 }}>
+              <label style={labelStyle}>Company name *</label>
+              <input
+                style={inputStyle}
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                placeholder="e.g. Ursa Major"
+                onKeyDown={(e) => e.key === 'Enter' && handleNewCompanySubmit()}
+              />
+            </div>
+            <div style={{ marginBottom: 16, maxWidth: 480 }}>
+              <label style={labelStyle}>Notes (optional)</label>
+              <textarea
+                style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                placeholder="Anything you already know…"
+              />
+            </div>
+            <button
+              style={btnPrimary}
+              onClick={handleNewCompanySubmit}
+              disabled={loadingResearch}
+            >
+              {loadingResearch ? 'Researching…' : 'Research company →'}
+            </button>
+            {loadingResearch && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginTop: 12,
+                fontSize: 13,
+                color: colors.muted
+              }}>
+                <span style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: colors.accent,
+                  animation: 'pulse 1s infinite'
+                }} />
+                Searching web + generating brief (~20s)
+              </div>
+            )}
           </div>
+        ) : (
+          <CompanyDetail
+            company={selectedCompany}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            researchResult={researchResult}
+            loadingResearch={loadingResearch}
+            onResearch={handleResearch}
+            people={people}
+            loadingPeople={loadingPeople}
+            onFindPeople={handleFindPeople}
+            onContactSelect={handleContactSelect}
+            contactName={contactName}
+            contactTitle={contactTitle}
+            askType={askType}
+            onContactNameChange={setContactName}
+            onContactTitleChange={setContactTitle}
+            onAskTypeChange={setAskType}
+            signals={signals}
+            loadingSignals={loadingSignals}
+            onScanSignals={handleScanSignals}
+            loadingSequence={loadingSequence}
+            onGenerateSequence={handleGenerateSequence}
+            sequence={sequence}
+            editedEmails={editedEmails}
+            onEmailsChange={setEditedEmails}
+          />
         )}
       </div>
     </div>
